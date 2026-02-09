@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('guru', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('id_user')->constrained('users')->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->string(column: "nama_guru");
             $table->string('NIP')->unique();
             $table->timestamps();

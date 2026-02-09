@@ -11,12 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('absensi', function (Blueprint $table) {
+        Schema::create('mapel', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('siswa_id')->constrained('siswa')->onDelete('cascade');
-            $table->foreignId('sesi_id')->constrained('sesi')->onDelete('cascade');
-            $table->time('waktu_scan')->nullable();
-            $table->enum('status', ['Hadir', 'Izin', 'Sakit' ,'Alpa'])->nullable();
+            $table->string('nama_mapel');
             $table->timestamps();
         });
     }
@@ -26,6 +23,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('absensi');
+        Schema::dropIfExists('mapel');
     }
 };

@@ -13,7 +13,12 @@ return new class extends Migration
     {
         Schema::create('tahun_ajaran', function (Blueprint $table) {
             $table->id();
+            $table->string('tahun'); // 2025/2026
+            $table->enum('semester', ['Ganjil', 'Genap']);
+            $table->boolean('is_active')->default(false);
             $table->timestamps();
+
+            $table->unique(['tahun', 'semester']);
         });
     }
 
@@ -22,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('tahun_ajaran');
+        //
     }
 };

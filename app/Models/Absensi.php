@@ -13,10 +13,9 @@ class Absensi extends Model
 
     protected $fillable = [
         'siswa_id',
-        'kelas_id',
-        'tahun_ajaran_id',
+        'sesi_id',
+        'waktu_scan',
         'status',
-        'tanggal',
     ];
 
     // Relasi ke Siswa

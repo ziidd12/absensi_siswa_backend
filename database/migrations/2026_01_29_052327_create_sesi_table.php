@@ -11,12 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('absensi', function (Blueprint $table) {
+        Schema::create('sesi', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('siswa_id')->constrained('siswa')->onDelete('cascade');
-            $table->foreignId('sesi_id')->constrained('sesi')->onDelete('cascade');
-            $table->time('waktu_scan')->nullable();
-            $table->enum('status', ['Hadir', 'Izin', 'Sakit' ,'Alpa'])->nullable();
+            $table->foreignId('jadwal_id')->constrained('jadwal');
+            $table->date('tanggal');
+            $table->string('token_qr');
             $table->timestamps();
         });
     }
@@ -26,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('absensi');
+        Schema::dropIfExists('sesi_presensi');
     }
 };
