@@ -52,7 +52,7 @@ class DatabaseSeeder extends Seeder
             'email' => 'siswa@test.com',
             'password' => Hash::make('password'),
             'role' => 'siswa',
-            'device_id' => 'DEV-123456' 
+            // 'device_id' => 'DEV-123456' 
         ]);
 
         $siswa = Siswa::create([

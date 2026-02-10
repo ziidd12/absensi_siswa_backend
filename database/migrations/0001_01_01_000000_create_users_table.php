@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('password');
 
             $table->enum('role', ['guru', 'siswa', 'admin'])->default('siswa'); 
-            $table->string('device_id')->nullable()->unique();
+            $table->string('device_id')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

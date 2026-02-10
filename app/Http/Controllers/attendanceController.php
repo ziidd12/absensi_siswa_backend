@@ -22,6 +22,7 @@ class AttendanceController extends Controller {
         /** @var \App\Models\User $user */ 
         $user = Auth::user();
 
+        // Proteksi Role
         if ($user->role !== 'siswa') {
             return response()->json([
                 'status' => 'error',
@@ -29,33 +30,21 @@ class AttendanceController extends Controller {
             ], 403);
         }
 
+        // Cari Sesi berdasarkan Token QR
         $sesi = sesi::where('token_qr', $request->token_qr)->firstOrFail();
-        // $lokasi = $sesi->jadwal->lokasi;
 
-        // $jarak = $this->haversine(
-        //     $request->lat_siswa, 
-        //     $request->long_siswa, 
-        //     $lokasi->latitude, 
-        //     $lokasi->longitude
-        // );
-        
-        // $isValid = $jarak <= $lokasi->radius;
-
+        // Simpan Absensi
         Absensi::create([
             'sesi_id' => $sesi->id,
             'siswa_id' => $user->siswa->id,
             'waktu_scan' => now(), 
-            'status' => 'hadir',
-            // 'is_valid' => $isValid,
-            // 'lat_siswa' => $request->lat_siswa, 
-            // 'long_siswa' => $request->long_siswa 
+            'status' => 'Hadir', // Gunakan 'Hadir' (H besar) sesuai Seeder/Enum
         ]);
 
         return response()->json([
-            'status'  ? 'success' : 'error',
-            'message'  ? 'Absen Berhasil' : 'Anda di luar radius sekolah!',
-            // 'jarak_meter' => round($jarak)
-        ]);
+            'status'  => 'success',
+            'message' => 'Absen Berhasil'
+        ], 200);
     }
 
     // private function haversine($lat1, $lon1, $lat2, $lon2) {
@@ -75,7 +64,7 @@ class AttendanceController extends Controller {
             ->get();
 
         $summary = [
-            'total_hadir' => $history->where('status', 'hadir')->count(),
+            'total_hadir' => $history->where('status', 'Hadir')->count(),
             'total_izin'  => $history->where('status', 'izin')->count(),
             'total_invalid' => $history->where('is_valid', false)->count(),
         ];
