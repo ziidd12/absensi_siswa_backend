@@ -19,20 +19,26 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Tahun Ajaran (Sesuai migrasi baru: tahun, semester, is_active)
+        // 1. Tahun Ajaran
         $ta = TahunAjaran::create([
             'tahun' => '2025/2026',
             'semester' => 'Genap',
             'is_active' => true
         ]);
 
-        // 2. Kelas
-        $kelas = Kelas::create(['nama_kelas' => 'XII RPL 1']);
+        // 2. Kelas (SESUAI MIGRASI BARU)
+        // Sebelumnya: 'nama_kelas' => 'XII RPL 1'
+        // Sekarang dipecah:
+        $kelas = Kelas::create([
+            'tingkat' => 12,
+            'jurusan' => 'RPL',
+            'nomor_kelas' => '1'
+        ]);
 
         // 3. Mapel
         $mapel = Mapel::create(['nama_mapel' => 'Pemrograman Laravel']);
 
-        // 4. Guru (User + Guru)
+        // 4. Guru
         $uGuru = User::create([
             'name' => 'Budi Guru, S.Kom',
             'email' => 'guru@test.com',
@@ -43,23 +49,22 @@ class DatabaseSeeder extends Seeder
         Guru::create([
             'user_id' => $uGuru->id,
             'nama_guru' => 'Budi Guru, S.Kom',
-            'NIP' => '198801012023011001' // Pakai NIP sesuai migrasi
+            'NIP' => '198801012023011001'
         ]);
 
-        // 5. Siswa (User + Siswa)
+        // 5. Siswa
         $uSiswa = User::create([
             'name' => 'Ahmad Siswa',
             'email' => 'siswa@test.com',
             'password' => Hash::make('password'),
             'role' => 'siswa',
-            // 'device_id' => 'DEV-123456' 
         ]);
 
         $siswa = Siswa::create([
             'user_id' => $uSiswa->id,
-            'id_kelas' => $kelas->id, // Sesuaikan dengan id_kelas di migrasi
+            'id_kelas' => $kelas->id,
             'nama_siswa' => 'Ahmad Siswa',
-            'NIS' => '222310101' // Pakai NIS sesuai migrasi
+            'NIS' => '222310101'
         ]);
 
         // 6. Jadwal (Senin - Minggu)
@@ -70,7 +75,7 @@ class DatabaseSeeder extends Seeder
             $j = Jadwal::create([
                 'kelas_id' => $kelas->id,
                 'mapel_id' => $mapel->id,
-                'guru_id' => $uGuru->id, // Asumsi jadwal pakai id guru/user
+                'guru_id' => $uGuru->id, 
                 'hari' => $hari,
                 'jam_mulai' => '07:30:00',
                 'jam_selesai' => '09:30:00',
@@ -91,7 +96,6 @@ class DatabaseSeeder extends Seeder
                 'token_qr' => Str::random(32),
             ]);
 
-            // Optional: Buat 1 data absen dummy untuk testing history
             if ($tgl->isPast() || $tgl->isToday()) {
                 \App\Models\Absensi::create([
                     'siswa_id' => $siswa->id,

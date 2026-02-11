@@ -39,7 +39,9 @@ class KelasController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama_kelas' => 'required|max:50',
+            'tingkat' => 'required',
+            'jurusan' => 'required|max:50',
+            'nomor_kelas' => 'required',
             'tahun_ajaran_id' => 'required|exists:tahun_ajaran,id',
         ]);
 
@@ -74,7 +76,9 @@ class KelasController extends Controller
         $kelas = $this->findKelasById($id);
 
         $validated = $request->validate([
-            'nama_kelas' => 'required|max:50',
+            'tingkat' => 'required',
+            'jurusan' => 'required|max:50',
+            'nomor_kelas' => 'required',
             'tahun_ajaran_id' => 'required|exists:tahun_ajaran,id',
         ]);
 

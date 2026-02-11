@@ -27,12 +27,17 @@ class Absensi extends Model
     // Relasi ke Kelas
     public function kelas()
     {
-        return $this->belongsTo(Kelas::class);
+        return $this->belongsTo(Kelas::class, 'id_kelas');
     }
 
     // Relasi ke Tahun Ajaran
     public function tahunAjaran()
     {
         return $this->belongsTo(TahunAjaran::class);
+    }
+
+    public function sesi()
+    {
+        return $this->belongsTo(sesi::class, 'sesi_id');
     }
 }
