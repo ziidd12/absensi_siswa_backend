@@ -19,32 +19,26 @@ class AttendanceController extends Controller {
     }
 
     public function scanQR(Request $request) {
-        /** @var \App\Models\User $user */ 
         $user = Auth::user();
+        $sesi = Sesi::where('token_qr', $request->token_qr)->firstOrFail();
 
-        // Proteksi Role
-        if ($user->role !== 'siswa') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Hanya siswa yang dapat melakukan absensi!'
-            ], 403);
+        // 1. Ambil Tahun Ajaran yang sedang Aktif
+        $tahunAktif = \App\Models\TahunAjaran::where('is_active', true)->first();
+
+        if (!$tahunAktif) {
+            return response()->json(['status' => 'error', 'message' => 'Tahun ajaran aktif belum disetting!'], 400);
         }
 
-        // Cari Sesi berdasarkan Token QR
-        $sesi = sesi::where('token_qr', $request->token_qr)->firstOrFail();
-
-        // Simpan Absensi
+        // 2. Simpan Absensi dengan tahun_ajaran_id
         Absensi::create([
             'sesi_id' => $sesi->id,
             'siswa_id' => $user->siswa->id,
-            'waktu_scan' => now(), 
-            'status' => 'Hadir', // Gunakan 'Hadir' (H besar) sesuai Seeder/Enum
+            'tahun_ajaran_id' => $tahunAktif->id, // OTOMATIS DISIMPAN DI SINI
+            'waktu_scan' => now(),
+            'status' => 'Hadir',
         ]);
 
-        return response()->json([
-            'status'  => 'success',
-            'message' => 'Absen Berhasil'
-        ], 200);
+        return response()->json(['status' => 'success', 'message' => 'Absen Berhasil'], 200);
     }
 
     // private function haversine($lat1, $lon1, $lat2, $lon2) {
