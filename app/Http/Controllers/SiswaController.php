@@ -3,52 +3,86 @@
 namespace App\Http\Controllers;
 
 use App\Models\Siswa;
-use App\Models\Kelas;
 use Illuminate\Http\Request;
 
 class SiswaController extends Controller
 {
-    public function index()
+    private function findSiswaById($id)
     {
-        $siswa = Siswa::with(['user','kelas'])->get();
-
-        return view('siswa.index', compact('siswa'));
+        return Siswa::findOrFail($id);
     }
 
-    public function create()
+    public function index(Request $request)
     {
-        $kelas = Kelas::all();
+        $data = Siswa::with(['user', 'kelas'])->get();
 
-        return view('siswa.create', compact('kelas'));
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'success',
+                'data'   => $data
+            ]);
+        }
+
+        return view('siswa/index', ['data' => $data]);
     }
 
     public function store(Request $request)
     {
-        Siswa::create($request->all());
+        $validated = $request->validate([
+            'user_id'    => 'required|exists:users,id',
+            'kelas_id'   => 'required|exists:kelas,id',
+            'nama_siswa' => 'required|string|max:255',
+            'nis'        => 'required|string|unique:siswa,nis',
+        ]);
 
-        return redirect()->route('siswa.index');
-    }
+        $status = Siswa::create($validated);
 
-    public function edit($id)
-    {
-        $siswa = Siswa::findOrFail($id);
-        $kelas = Kelas::all();
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Data siswa berhasil ditambahkan',
+                'data' => $status
+            ], 201);
+        }
 
-        return view('siswa.edit', compact('siswa','kelas'));
+        return redirect('/siswa')->with('success', 'Data siswa berhasil ditambahkan');
     }
 
     public function update(Request $request, $id)
     {
-        $siswa = Siswa::findOrFail($id);
-        $siswa->update($request->all());
+        $siswa = $this->findSiswaById($id);
+        
+        $validated = $request->validate([
+            'user_id'    => 'required|exists:users,id',
+            'kelas_id'   => 'required|exists:kelas,id',
+            'nama_siswa' => 'required|string|max:255',
+            'nis'        => 'required|string|unique:siswa,nis,' . $id,
+        ]);
 
-        return redirect()->route('siswa.index');
+        $siswa->update($validated);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Data siswa berhasil diupdate',
+            ]);
+        }
+
+        return redirect('/siswa')->with('success', 'Data siswa berhasil diupdate');
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        Siswa::destroy($id);
+        $siswa = $this->findSiswaById($id);
+        $siswa->delete();
 
-        return redirect()->route('siswa.index');
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Data siswa berhasil dihapus',
+            ]);
+        }
+
+        return redirect('/siswa')->with('success', 'Data siswa berhasil dihapus');
     }
 }
