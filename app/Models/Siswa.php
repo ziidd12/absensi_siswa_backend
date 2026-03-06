@@ -5,8 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-
-
 class Siswa extends Model
 {
     use HasFactory;
@@ -16,18 +14,19 @@ class Siswa extends Model
     protected $fillable = [
         'user_id',
         'nama_siswa',
-        'nis',
-        'kelas_id',
+        'NIS',
+        'id_kelas', // Pastikan namanya id_kelas sesuai database
     ];
+
+    public function kelas()
+    {
+        // Beritahu Laravel foreign key-nya adalah 'id_kelas'
+        return $this->belongsTo(Kelas::class, 'id_kelas');
+    }
 
     public function user()
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function kelas()
-    {
-        return $this->belongsTo(Kelas::class, 'id_kelas');
     }
 
     public function absensi()

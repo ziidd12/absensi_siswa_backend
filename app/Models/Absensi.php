@@ -14,30 +14,23 @@ class Absensi extends Model
     protected $fillable = [
         'siswa_id',
         'sesi_id',
+        'tahun_ajaran_id',
         'waktu_scan',
         'status',
     ];
 
-    // Relasi ke Siswa
     public function siswa()
     {
-        return $this->belongsTo(Siswa::class);
+        return $this->belongsTo(Siswa::class, 'siswa_id');
     }
 
-    // Relasi ke Kelas
-    public function kelas()
-    {
-        return $this->belongsTo(Kelas::class, 'id_kelas');
-    }
-
-    // Relasi ke Tahun Ajaran
     public function tahunAjaran()
     {
-        return $this->belongsTo(TahunAjaran::class);
+        return $this->belongsTo(TahunAjaran::class, 'tahun_ajaran_id');
     }
 
     public function sesi()
     {
-        return $this->belongsTo(sesi::class, 'sesi_id');
+        return $this->belongsTo(Sesi::class, 'sesi_id');
     }
 }

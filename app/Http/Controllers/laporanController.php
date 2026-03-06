@@ -10,60 +10,90 @@ class LaporanController extends Controller
 {
     public function cetakLaporan(Request $request)
     {
-        $status = $request->status;
-        $tingkat = $request->tingkat;
-        $jurusan = $request->jurusan;
-        // Kita simpan tahun_ajaran_id hanya untuk tampilan di PDF, bukan untuk filter database sementara ini
-        $tahun_ajaran_id = $request->tahun_ajaran_id;
+        try {
+            // Bersihkan output buffer di awal agar PDF tidak corrupt
+            if (ob_get_length()) ob_end_clean();
 
-        $filter = [
-            'tingkat' => $tingkat,
-            'jurusan' => $jurusan,
-            'status'  => $status,
-            'tahun_ajaran_id' => $tahun_ajaran_id
-        ];
+            $status = $request->status;
+            $tingkat = $request->tingkat;
+            $jurusan = $request->jurusan;
+            $tahun_ajaran_id = $request->tahun_ajaran_id;
 
-        // Query Utama - Hanya meload relasi yang pasti ada
-        $query = Absensi::with(['siswa.kelas', 'sesi.jadwal.mapel']);
+            // 1. Inisialisasi Query
+            $query = Absensi::with(['siswa.kelas', 'sesi.jadwal.mapel']);
 
-        // 1. Filter Status
-        if ($status) {
-            $query->where('status', $status);
-        }
+            // 2. Terapkan Filter dengan casting tipe data
+            if ($tahun_ajaran_id) {
+                $query->where('tahun_ajaran_id', (int)$tahun_ajaran_id);
+            }
 
-        // 2. Filter Tingkat & Jurusan (Lewat Siswa -> Kelas)
-        if ($tingkat || $jurusan) {
-            $query->whereHas('siswa.kelas', function($q) use ($tingkat, $jurusan) {
-                if ($tingkat) $q->where('tingkat', $tingkat);
-                if ($jurusan) $q->where('jurusan', $jurusan);
-            });
-        }
+            if ($status) {
+                $query->where('status', $status);
+            }
 
-        // AMBIL DATA
-        $absensi = $query->latest()->get();
+            if ($tingkat || $jurusan) {
+                $query->whereHas('siswa.kelas', function($q) use ($tingkat, $jurusan) {
+                    if ($tingkat) $q->where('tingkat', (int)$tingkat);
+                    if ($jurusan) $q->where('jurusan', $jurusan);
+                });
+            }
 
-        // Statistik
-        $stats = [
-            'Hadir' => $absensi->where('status', 'Hadir')->count(),
-            'Sakit' => $absensi->where('status', 'Sakit')->count(),
-            'Izin'  => $absensi->where('status', 'Izin')->count(),
-            'Alpa'  => $absensi->where('status', 'Alpa')->count(),
-        ];
-        $total = $absensi->count();
+            // --- LOGIKA JSON (FLUTTER DASHBOARD) ---
+            if (($request->expectsJson() || $request->get('format') == 'json') && !$request->is('*/pdf')) {
+                
+                $allData = (clone $query)->get();
 
-        if ($request->expectsJson() || $request->get('format') == 'json') {
+                // Hitung Statistik Grafik (Wajib Loop dari allData)
+                $chartData = [];
+                foreach ($allData as $item) {
+                    if ($item->siswa && $item->siswa->kelas) {
+                        $namaKelas = trim($item->siswa->kelas->tingkat . ' ' . $item->siswa->kelas->jurusan . ' ' . ($item->siswa->kelas->nomor_kelas ?? ''));
+                        $chartData[$namaKelas] = ($chartData[$namaKelas] ?? 0) + 1;
+                    }
+                }
+
+                $stats = [
+                    'Hadir' => $allData->where('status', 'Hadir')->count(),
+                    'Sakit' => $allData->where('status', 'Sakit')->count(),
+                    'Izin'  => $allData->where('status', 'Izin')->count(),
+                    'Alpa'  => $allData->where('status', 'Alpa')->count(),
+                ];
+
+                $paginated = $query->latest()->paginate(5);
+
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'filter' => $request->all(),
+                        'statistik' => $stats,
+                        'total_data' => $paginated->total(),
+                        'statistik_grafik' => empty($chartData) ? (object)[] : $chartData,
+                        'absensi' => $paginated->items()
+                    ]
+                ]);
+            }
+
+            // --- LOGIKA PDF (DOWNLOAD) ---
+            $absensi = $query->latest()->get();
+            $stats = [
+                'Hadir' => $absensi->where('status', 'Hadir')->count(),
+                'Sakit' => $absensi->where('status', 'Sakit')->count(),
+                'Izin'  => $absensi->where('status', 'Izin')->count(),
+                'Alpa'  => $absensi->where('status', 'Alpa')->count(),
+            ];
+            $total = $absensi->count();
+            $filter = $request->all();
+
+            $pdf = Pdf::loadView('laporan.laporan_pdf', compact('absensi', 'filter', 'stats', 'total'));
+
+            return response($pdf->output(), 200)
+                ->header('Content-Type', 'application/pdf');
+
+        } catch (\Exception $e) {
             return response()->json([
-                'success' => true,
-                'data' => [
-                    'filter' => $filter,
-                    'statistik' => $stats,
-                    'total_data' => $total,
-                    'absensi' => $absensi
-                ]
-            ]);
+                'success' => false,
+                'message' => 'Terjadi Kesalahan: ' . $e->getMessage()
+            ], 500);
         }
-
-        $pdf = Pdf::loadView('laporan.laporan_pdf', compact('absensi', 'filter', 'stats', 'total'));
-        return $pdf->stream('laporan-kehadiran.pdf');
     }
 }

@@ -11,6 +11,7 @@ use App\Models\Mapel;
 use App\Models\Jadwal;
 use App\Models\Sesi;
 use App\Models\TahunAjaran;
+use App\Models\Absensi;
 use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
@@ -26,9 +27,7 @@ class DatabaseSeeder extends Seeder
             'is_active' => true
         ]);
 
-        // 2. Kelas (SESUAI MIGRASI BARU)
-        // Sebelumnya: 'nama_kelas' => 'XII RPL 1'
-        // Sekarang dipecah:
+        // 2. Kelas
         $kelas = Kelas::create([
             'tingkat' => 12,
             'jurusan' => 'RPL',
@@ -83,7 +82,7 @@ class DatabaseSeeder extends Seeder
             $jadwal_ids[$hari] = $j->id;
         }
 
-        // 7. Sesi QR & Absensi (9 Feb - 16 Feb 2026)
+        // 7. Sesi QR & Absensi Otomatis
         $start = Carbon::create(2026, 2, 9);
         
         for ($i = 0; $i <= 7; $i++) {
@@ -96,10 +95,12 @@ class DatabaseSeeder extends Seeder
                 'token_qr' => Str::random(32),
             ]);
 
+            // Jika tanggal sudah lewat atau hari ini, buat data absensi dummy
             if ($tgl->isPast() || $tgl->isToday()) {
-                \App\Models\Absensi::create([
+                Absensi::create([
                     'siswa_id' => $siswa->id,
                     'sesi_id' => $sesi->id,
+                    'tahun_ajaran_id' => $ta->id, // PERBAIKAN: Hubungkan ke Tahun Ajaran yang dibuat di atas
                     'waktu_scan' => $tgl->copy()->hour(7)->minute(rand(30, 45)),
                     'status' => 'Hadir'
                 ]);

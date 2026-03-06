@@ -7,24 +7,60 @@ use Illuminate\Http\Request;
 
 class TahunAjaranController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $tahun = TahunAjaran::all();
+        $data = TahunAjaran::all();
 
-        return view('tahun.index', compact('tahun'));
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'success',
+                'data'   => $data
+            ]);
+        }
+
+        return view('tahun_ajaran/index', ['data' => $data]);
     }
 
     public function store(Request $request)
     {
-        TahunAjaran::create($request->all());
+        $validated = $request->validate([
+            'tahun'     => 'required|string',
+            'semester'  => 'required|in:Ganjil,Genap',
+            'is_active' => 'required|boolean',
+        ]);
 
-        return back();
+        $status = TahunAjaran::create($validated);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Tahun ajaran berhasil ditambahkan',
+                'data' => $status
+            ], 201);
+        }
+
+        return redirect('/tahun-ajaran')->with('success', 'Tahun ajaran berhasil ditambahkan');
     }
 
-    public function destroy($id)
+    public function update(Request $request, $id)
     {
-        TahunAjaran::destroy($id);
+        $ta = TahunAjaran::findOrFail($id);
+        
+        $validated = $request->validate([
+            'tahun'     => 'required|string',
+            'semester'  => 'required|in:Ganjil,Genap',
+            'is_active' => 'required|boolean',
+        ]);
 
-        return back();
+        $ta->update($validated);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Tahun ajaran berhasil diupdate',
+            ]);
+        }
+
+        return redirect('/tahun-ajaran')->with('success', 'Tahun ajaran berhasil diupdate');
     }
 }

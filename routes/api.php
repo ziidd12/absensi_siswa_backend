@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AcademicController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\ProfileController;
@@ -17,7 +18,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('/user', UserController::class);
 
+    Route::get('/laporan/kehadiran', [LaporanController::class, 'cetakLaporan']);
+
     Route::get('/laporan/kehadiran/pdf', [LaporanController::class, 'cetakLaporan'])->name('laporan.kehadiran.pdf');
+
+    Route::get('academic/master-data', [AcademicController::class, 'getMasterData'])->name('laporan.kehadiran.pdf');
     
     Route::post('/logout', [AuthController::class, 'logout']);
 });
