@@ -21,4 +21,10 @@ class Kelas extends Model
     {
         return $this->hasMany(Siswa::class);
     }
+
+    public function scopeWithActiveTahun($query)
+    {
+        // Ini akan membantu kamu mengambil tahun ajaran yang is_active = 1
+        return TahunAjaran::where('is_active', true)->first();
+    }
 }

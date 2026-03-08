@@ -20,24 +20,32 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Tahun Ajaran
+        // 1. Buat User Admin
+        User::create([
+            'name' => 'Administrator Sistem',
+            'email' => 'admin@test.com',
+            'password' => Hash::make('password'),
+            'role' => 'admin',
+        ]);
+
+        // 2. Tahun Ajaran
         $ta = TahunAjaran::create([
             'tahun' => '2025/2026',
             'semester' => 'Genap',
             'is_active' => true
         ]);
 
-        // 2. Kelas
+        // 3. Kelas
         $kelas = Kelas::create([
             'tingkat' => 12,
             'jurusan' => 'RPL',
             'nomor_kelas' => '1'
         ]);
 
-        // 3. Mapel
+        // 4. Mapel
         $mapel = Mapel::create(['nama_mapel' => 'Pemrograman Laravel']);
 
-        // 4. Guru
+        // 5. Guru (User & Profil Guru)
         $uGuru = User::create([
             'name' => 'Budi Guru, S.Kom',
             'email' => 'guru@test.com',
@@ -45,13 +53,14 @@ class DatabaseSeeder extends Seeder
             'role' => 'guru',
         ]);
         
-        Guru::create([
+        // Simpan data guru ke variabel agar ID-nya bisa dipakai di Jadwal
+        $guruProfile = Guru::create([
             'user_id' => $uGuru->id,
             'nama_guru' => 'Budi Guru, S.Kom',
             'NIP' => '198801012023011001'
         ]);
 
-        // 5. Siswa
+        // 6. Siswa (User & Profil Siswa)
         $uSiswa = User::create([
             'name' => 'Ahmad Siswa',
             'email' => 'siswa@test.com',
@@ -59,14 +68,14 @@ class DatabaseSeeder extends Seeder
             'role' => 'siswa',
         ]);
 
-        $siswa = Siswa::create([
+        $siswaProfile = Siswa::create([
             'user_id' => $uSiswa->id,
             'id_kelas' => $kelas->id,
             'nama_siswa' => 'Ahmad Siswa',
             'NIS' => '222310101'
         ]);
 
-        // 6. Jadwal (Senin - Minggu)
+        // 7. Jadwal (Senin - Minggu)
         $haris = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
         $jadwal_ids = [];
 
@@ -74,7 +83,7 @@ class DatabaseSeeder extends Seeder
             $j = Jadwal::create([
                 'kelas_id' => $kelas->id,
                 'mapel_id' => $mapel->id,
-                'guru_id' => $uGuru->id, 
+                'guru_id' => $guruProfile->id, // PERBAIKAN: Mengacu ke id tabel guru
                 'hari' => $hari,
                 'jam_mulai' => '07:30:00',
                 'jam_selesai' => '09:30:00',
@@ -82,8 +91,9 @@ class DatabaseSeeder extends Seeder
             $jadwal_ids[$hari] = $j->id;
         }
 
-        // 7. Sesi QR & Absensi Otomatis
-        $start = Carbon::create(2026, 2, 9);
+        // 8. Sesi QR & Absensi Otomatis
+        // Menggunakan tanggal saat ini (Maret 2026) sesuai konteks sistem
+        $start = Carbon::create(2026, 3, 1); 
         
         for ($i = 0; $i <= 7; $i++) {
             $tgl = $start->copy()->addDays($i);
@@ -98,9 +108,9 @@ class DatabaseSeeder extends Seeder
             // Jika tanggal sudah lewat atau hari ini, buat data absensi dummy
             if ($tgl->isPast() || $tgl->isToday()) {
                 Absensi::create([
-                    'siswa_id' => $siswa->id,
+                    'siswa_id' => $siswaProfile->id,
                     'sesi_id' => $sesi->id,
-                    'tahun_ajaran_id' => $ta->id, // PERBAIKAN: Hubungkan ke Tahun Ajaran yang dibuat di atas
+                    'tahun_ajaran_id' => $ta->id,
                     'waktu_scan' => $tgl->copy()->hour(7)->minute(rand(30, 45)),
                     'status' => 'Hadir'
                 ]);

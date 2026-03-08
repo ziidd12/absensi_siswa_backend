@@ -53,4 +53,10 @@ class User extends Authenticatable
     {
         return $this->hasOne(Siswa::class);
     }
+
+    public function guru()
+    {
+        // User memiliki satu profil Guru
+        return $this->hasOne(Guru::class, 'user_id');
+    }
 }

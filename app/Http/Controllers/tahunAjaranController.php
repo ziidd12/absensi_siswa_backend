@@ -18,7 +18,7 @@ class TahunAjaranController extends Controller
             ]);
         }
 
-        return view('tahun_ajaran/index', ['data' => $data]);
+        return view('tahun-ajaran.index', ['data' => $data]);
     }
 
     public function store(Request $request)

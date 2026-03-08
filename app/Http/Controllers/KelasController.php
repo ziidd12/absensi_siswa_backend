@@ -16,17 +16,22 @@ class KelasController extends Controller
 
     public function index(Request $request)
     {
-        // Tetap gunakan waliKelas agar tidak error
-        $data = Kelas::with(['tahunAjaran'])->get();
+        // Ambil semua kelas (Master Data)
+        $data = Kelas::all(); 
+        
+        // Ambil tahun yang sedang aktif saja untuk ditampilkan di Header/Label
+        $tahunAktif = TahunAjaran::where('is_active', true)->first();
+        $tahunAjaran = TahunAjaran::all(); // Untuk dropdown di modal jika tetap butuh
 
         if ($request->expectsJson()) {
             return response()->json([
                 'status' => 'success',
-                'data'   => $data
+                'tahun_aktif' => $tahunAktif,
+                'data' => $data
             ]);
         }
 
-        return view('kelas/index', ['data' => $data]);
+        return view('kelas.index', compact('data', 'tahunAktif', 'tahunAjaran'));
     }
 
     public function store(Request $request)
