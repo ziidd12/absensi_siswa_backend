@@ -12,19 +12,20 @@ class Kelas extends Model
     protected $table = 'kelas';
 
     protected $fillable = [
-        'tingkat',
-        'jurusan',
-        'nomor_kelas',
-    ];
+    'tingkat',
+    'jurusan',
+    'nomor_kelas',
+    'tahun_ajaran_id', // Tambahkan baris ini
+];
 
-    public function siswa()
-    {
-        return $this->hasMany(Siswa::class);
-    }
+   public function siswa()
+{
+    return $this->hasMany(Siswa::class);
+}
 
-    public function scopeWithActiveTahun($query)
-    {
-        // Ini akan membantu kamu mengambil tahun ajaran yang is_active = 1
-        return TahunAjaran::where('is_active', true)->first();
-    }
+// TAMBAHKAN RELASI INI
+public function tahunAjaran()
+{
+    return $this->belongsTo(TahunAjaran::class, 'tahun_ajaran_id');
+}
 }

@@ -3,6 +3,7 @@
 
     <div class="row">
         <div class="col-md-12">
+            {{-- Alert Notifikasi --}}
             @if(session('success'))
                 <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert" style="border-radius: 15px;">
                     <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
@@ -17,10 +18,21 @@
                 </div>
             @endif
 
-            <div class="card card-table p-4">
+            {{-- Menampilkan Error Validasi Global (Jika ada) --}}
+            @if ($errors->any())
+                <div class="alert alert-danger border-0 shadow-sm mb-4" style="border-radius: 15px;">
+                    <ul class="mb-0">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <div class="card card-table p-4 border-0 shadow-sm" style="border-radius: 20px;">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
-                        <h5 class="fw-bold mb-0">Pengaturan Akun</h5>
+                        <h5 class="fw-bold mb-0 text-dark">Pengaturan Akun</h5>
                         <small class="text-muted">Kelola akses login untuk Admin, Guru, dan Siswa</small>
                     </div>
                     <button class="btn btn-primary px-4 py-2 shadow-sm" style="border-radius: 12px;" data-bs-toggle="modal" data-bs-target="#modalTambah">
@@ -74,20 +86,20 @@
                                             <i class="bi bi-pencil-square text-warning"></i>
                                         </button>
                                         
-                                        @if($user->role == 'siswa')
-                                        <form action="{{ route('admin.users.reset_device', $user->id) }}" method="POST">
-                                            @csrf
-                                            @method('PATCH')
-                                            <button type="submit" class="btn btn-light btn-sm rounded-3 border shadow-sm" onclick="return confirm('Reset Device ID siswa ini?')" title="Reset Device">
-                                                <i class="bi bi-phone-flip text-info"></i>
-                                            </button>
-                                        </form>
-                                        @endif
+                                       {{-- Tombol Reset Device untuk Guru dan Siswa --}}
+@if(in_array($user->role, ['guru', 'siswa']) && $user->device_id)
+<form action="{{ route('admin.users.reset_device', $user->id) }}" method="POST">
+    @csrf @method('PATCH')
+    <button type="submit" class="btn btn-light btn-sm rounded-3 border shadow-sm" 
+            onclick="return confirm('Reset Device ID untuk {{ $user->name }}?')" title="Reset Device">
+        <i class="bi bi-phone-flip text-info"></i>
+    </button>
+</form>
+@endif
 
                                         @if($user->id !== Auth::id())
                                         <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST">
-                                            @csrf
-                                            @method('DELETE')
+                                            @csrf @method('DELETE')
                                             <button type="submit" class="btn btn-light btn-sm rounded-3 border shadow-sm" onclick="return confirm('Hapus akun ini?')" title="Hapus User">
                                                 <i class="bi bi-trash3 text-danger"></i>
                                             </button>
@@ -97,6 +109,7 @@
                                 </td>
                             </tr>
 
+                            {{-- Modal Edit --}}
                             <div class="modal fade" id="modalEdit{{ $user->id }}" tabindex="-1" aria-hidden="true">
                                 <div class="modal-dialog modal-dialog-centered">
                                     <div class="modal-content border-0 shadow" style="border-radius: 20px;">
@@ -105,8 +118,7 @@
                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                         </div>
                                         <form action="{{ route('admin.users.update', $user->id) }}" method="POST">
-                                            @csrf
-                                            @method('PUT')
+                                            @csrf @method('PUT')
                                             <div class="modal-body p-4">
                                                 <div class="mb-3">
                                                     <label class="form-label small fw-bold">Nama Lengkap</label>
@@ -117,7 +129,7 @@
                                                     <input type="email" name="email" class="form-control rounded-3" value="{{ $user->email }}" required>
                                                 </div>
                                                 <div class="mb-3">
-                                                    <label class="form-label small fw-bold">Password Baru (Kosongkan jika tidak ganti)</label>
+                                                    <label class="form-label small fw-bold">Password Baru <span class="text-muted fw-normal">(Kosongkan jika tidak ganti)</span></label>
                                                     <input type="password" name="password" class="form-control rounded-3" placeholder="******">
                                                 </div>
                                                 <div class="mb-3">
@@ -145,6 +157,7 @@
         </div>
     </div>
 
+    {{-- Modal Tambah --}}
     <div class="modal fade" id="modalTambah" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow" style="border-radius: 20px;">
@@ -157,11 +170,11 @@
                     <div class="modal-body p-4">
                         <div class="mb-3">
                             <label class="form-label small fw-bold">Nama Lengkap</label>
-                            <input type="text" name="name" class="form-control rounded-3" placeholder="Masukkan nama" required>
+                            <input type="text" name="name" class="form-control rounded-3" placeholder="Masukkan nama" value="{{ old('name') }}" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label small fw-bold">Alamat Email</label>
-                            <input type="email" name="email" class="form-control rounded-3" placeholder="email@sekolah.com" required>
+                            <input type="email" name="email" class="form-control rounded-3" placeholder="email@sekolah.com" value="{{ old('email') }}" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label small fw-bold">Password</label>
@@ -171,9 +184,9 @@
                             <label class="form-label small fw-bold">Role / Peran</label>
                             <select name="role" class="form-select rounded-3" required>
                                 <option value="" selected disabled>Pilih Role...</option>
-                                <option value="admin">Admin</option>
-                                <option value="guru">Guru</option>
-                                <option value="siswa">Siswa</option>
+                                <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
+                                <option value="guru" {{ old('role') == 'guru' ? 'selected' : '' }}>Guru</option>
+                                <option value="siswa" {{ old('role') == 'siswa' ? 'selected' : '' }}>Siswa</option>
                             </select>
                         </div>
                     </div>

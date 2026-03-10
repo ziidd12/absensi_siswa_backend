@@ -35,7 +35,7 @@
                         <tbody>
                             @forelse($data as $siswa)
                             <tr>
-                                <td class="fw-bold text-primary">{{ $siswa->NIS }}</td>
+                                <td class="fw-bold text-primary">{{ $siswa->nis }}</td>
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <img src="https://ui-avatars.com/api/?name={{ urlencode($siswa->nama_siswa) }}&background=0047ff&color=fff" class="rounded-circle me-3" width="35">
@@ -89,9 +89,9 @@
                                                 </div>
                                                 <div class="mb-3">
                                                     <label class="form-label small fw-bold">Kelas</label>
-                                                    <select name="kelas_id" class="form-select rounded-3" required>
+                                                    <select name="id_kelas" class="form-select rounded-3" required>
                                                         @foreach(\App\Models\Kelas::all() as $k)
-                                                            <option value="{{ $k->id }}" {{ $siswa->kelas_id == $k->id ? 'selected' : '' }}>
+                                                            <option value="{{ $k->id }}" {{ $siswa->id_kelas == $k->id ? 'selected' : '' }}>
                                                                 {{ $k->tingkat }} {{ $k->jurusan }} {{ $k->nomor_kelas }}
                                                             </option>
                                                         @endforeach
@@ -141,9 +141,6 @@
                                     <option value="{{ $user->id }}">{{ $user->name }} ({{ $user->email }})</option>
                                 @endforeach
                             </select>
-                            @if($availableUsers->isEmpty())
-                                <small class="text-danger mt-1 d-block">Tidak ada akun siswa yang tersedia.</small>
-                            @endif
                         </div>
                         <div class="mb-3">
                             <label class="form-label small fw-bold">NIS</label>
@@ -155,7 +152,7 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label small fw-bold">Kelas</label>
-                            <select name="kelas_id" class="form-select rounded-3" required>
+                            <select name="id_kelas" class="form-select rounded-3" required>
                                 <option value="" selected disabled>-- Pilih Kelas --</option>
                                 @foreach(\App\Models\Kelas::all() as $k)
                                     <option value="{{ $k->id }}">{{ $k->tingkat }} {{ $k->jurusan }} {{ $k->nomor_kelas }}</option>

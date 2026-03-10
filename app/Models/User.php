@@ -24,6 +24,7 @@ class User extends Authenticatable
         'password',
         'role',
         'device_id',
+        'tahun_ajaran_id',
     ];
 
     /**

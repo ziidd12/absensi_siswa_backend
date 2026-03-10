@@ -76,7 +76,7 @@
 </head>
 <body>
     <div class="sidebar">
-        <div class="sidebar-brand">ZieAbsensi</div>
+        <div class="sidebar-brand">AbsenSiswa</div>
         <nav>
             <a href="{{ route('dashboard') }}" class="nav-item-custom {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                 <i class="bi bi-grid-fill"></i> Dashboard
@@ -96,10 +96,6 @@
             <a href="{{ route('tahun-ajaran.index') }}" class="nav-item-custom {{ request()->routeIs('tahun-ajaran.*') ? 'active' : '' }}">
                 <i class="bi bi-calendar3"></i> Tahun Ajaran
             </a>
-            <a href="{{ route('absensi.index') }}" class="nav-item-custom {{ request()->routeIs('absensi.*') ? 'active' : '' }}">
-                <i class="bi bi-calendar-check"></i> Absensi
-            </a>
-            
             <div style="position: absolute; bottom: 30px; width: 100%;">
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf

@@ -24,7 +24,7 @@
                         <th width="150">Tingkat</th>
                         <th>Jurusan</th>
                         <th>Nomor/Nama Kelas</th>
-                        <th class="text-center">Aksi</th>
+                        <th>Tahun Ajaran</th> <th class="text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -37,6 +37,11 @@
                         </td>
                         <td><span class="fw-bold text-dark">{{ $kelas->jurusan }}</span></td>
                         <td><span class="text-muted fw-medium">{{ $kelas->nomor_kelas }}</span></td>
+                        <td> <span class="badge bg-secondary-subtle text-secondary rounded-pill px-3">
+                                {{ $kelas->tahunAjaran->tahun ?? 'N/A' }} 
+                                <small>({{ $kelas->tahunAjaran->semester ?? '-' }})</small>
+                            </span>
+                        </td>
                         <td class="text-center">
                             <div class="btn-group shadow-sm rounded-3">
                                 <button class="btn btn-white btn-sm border" data-bs-toggle="modal" data-bs-target="#modalEditKelas{{ $kelas->id }}">
@@ -61,6 +66,8 @@
                                 </div>
                                 <form action="{{ route('kelas.update', $kelas->id) }}" method="POST">
                                     @csrf @method('PUT')
+                                    <input type="hidden" name="tahun_ajaran_id" value="{{ $kelas->tahun_ajaran_id ?? $tahunAktif->id }}">
+
                                     <div class="modal-body p-4">
                                         <div class="row g-3">
                                             <div class="col-md-4">
@@ -90,7 +97,7 @@
                     </div>
                     @empty
                     <tr>
-                        <td colspan="4" class="text-center py-5 text-muted">Belum ada data kelas.</td>
+                        <td colspan="5" class="text-center py-5 text-muted">Belum ada data kelas.</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -107,6 +114,8 @@
                 </div>
                 <form action="{{ route('kelas.store') }}" method="POST">
                     @csrf
+                    <input type="hidden" name="tahun_ajaran_id" value="{{ $tahunAktif->id ?? '' }}">
+
                     <div class="modal-body p-4">
                         <div class="row g-3">
                             <div class="col-md-4">
@@ -127,7 +136,10 @@
                             </div>
                         </div>
                         <div class="mt-3 p-2 bg-light rounded-3">
-                            <small class="text-muted"><i class="bi bi-info-circle me-1"></i> Kelas yang ditambahkan akan otomatis mengikuti tahun ajaran yang sedang aktif.</small>
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle me-1"></i> 
+                                Kelas ini akan otomatis terhubung ke <strong>{{ $tahunAktif->tahun ?? 'Tahun Ajaran Belum Aktif' }}</strong>.
+                            </small>
                         </div>
                     </div>
                     <div class="modal-footer border-0 p-4 pt-0">

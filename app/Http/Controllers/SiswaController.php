@@ -30,14 +30,14 @@ class SiswaController extends Controller
     {
         $validated = $request->validate([
             'user_id'    => 'required|exists:users,id',
-            'kelas_id'   => 'required|exists:kelas,id',
+            'id_kelas'   => 'required|exists:kelas,id', // Diperbaiki ke id_kelas
             'nama_siswa' => 'required|string|max:255',
             'nis'        => 'required|string|unique:siswa,nis',
         ]);
 
         $status = Siswa::create($validated);
 
-        if ($request->expectsJson()) {
+        if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'status' => true,
                 'message' => 'Data siswa berhasil ditambahkan',
@@ -54,14 +54,14 @@ class SiswaController extends Controller
         
         $validated = $request->validate([
             'user_id'    => 'required|exists:users,id',
-            'kelas_id'   => 'required|exists:kelas,id',
+            'id_kelas'   => 'required|exists:kelas,id', // Diperbaiki ke id_kelas
             'nama_siswa' => 'required|string|max:255',
             'nis'        => 'required|string|unique:siswa,nis,' . $id,
         ]);
 
         $siswa->update($validated);
 
-        if ($request->expectsJson()) {
+        if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'status' => true,
                 'message' => 'Data siswa berhasil diupdate',
@@ -76,7 +76,7 @@ class SiswaController extends Controller
         $siswa = $this->findSiswaById($id);
         $siswa->delete();
 
-        if ($request->expectsJson()) {
+        if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'status' => true,
                 'message' => 'Data siswa berhasil dihapus',
