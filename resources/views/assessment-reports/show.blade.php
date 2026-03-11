@@ -1,98 +1,105 @@
 <x-app-layout>
-    @section('title', 'Detail Laporan - ' . $siswa->name)
+    @section('title', 'Detail Laporan - ' . $user->name)
 
-    <div class="card card-table p-4 border-0 shadow-sm" style="border-radius: 20px;">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h5 class="fw-bold mb-0 text-dark">Detail Laporan Penilaian</h5>
-                <div class="mt-2">
-                    <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill shadow-sm">
-                        <i class="bi bi-person-fill me-1"></i> {{ $siswa->name }}
-                    </span>
-                    <span class="badge bg-secondary-subtle text-secondary px-3 py-2 rounded-pill shadow-sm ms-2">
-                        <i class="bi bi-door-open-fill me-1"></i> {{ $siswa->siswa->kelas->nama_kelas ?? 'Kelas tidak ditemukan' }}
-                    </span>
+    <div class="container-fluid py-4">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div class="d-flex align-items-center gap-3">
+                <a href="{{ route('monitoring-nilai.index') }}" 
+                   class="btn btn-white border shadow-sm rounded-circle p-0 d-flex align-items-center justify-content-center" 
+                   style="width: 45px; height: 45px; background: white;">
+                    <i class="bi bi-arrow-left fs-5 text-dark"></i>
+                </a>
+                <div>
+                    <h4 class="fw-bold mb-0 text-dark" style="letter-spacing: -0.5px;">Detail Laporan Penilaian</h4>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0 small">
+                            <li class="breadcrumb-item"><a href="{{ route('monitoring-nilai.index') }}" class="text-decoration-none text-primary">Laporan</a></li>
+                            <li class="breadcrumb-item active">{{ $user->name }}</li>
+                        </ol>
+                    </nav>
                 </div>
             </div>
-            <a href="{{ route('laporan-penilaian.index') }}" class="btn btn-outline-secondary px-4 shadow-sm" style="border-radius: 12px;">
-                <i class="bi bi-arrow-left me-2"></i> Kembali
-            </a>
         </div>
 
-        <div class="row">
-            <div class="col-md-6 mb-4">
-                <div class="bg-light p-4 rounded-3">
-                    <h6 class="fw-bold mb-3">Rata-rata Nilai per Kategori</h6>
-                    @forelse($scores as $score)
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span>{{ $score->name }}</span>
-                            <span class="fw-bold">{{ $score->average_score }}</span>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 20px;">
+                    <div class="mx-auto bg-primary-subtle text-primary fw-bold d-flex align-items-center justify-content-center rounded-circle mb-3" 
+                         style="width: 80px; height: 80px; font-size: 30px; border: 4px solid #f0f7ff;">
+                        {{ substr($user->name, 0, 1) }}
+                    </div>
+                    <h5 class="fw-bold text-dark mb-1">{{ $user->name }}</h5>
+                    <p class="text-muted small mb-3">{{ $user->siswa->NIS ?? 'NIS tidak tersedia' }}</p>
+                    
+                    <hr class="my-4 opacity-50">
+                    
+                    <div class="text-start">
+                        <div class="mb-3">
+                            <label class="small text-muted d-block text-uppercase fw-bold mb-1" style="font-size: 10px;">Kelas</label>
+                            <span class="fw-medium text-dark">{{ $user->siswa->kelas->nama_kelas ?? '-' }}</span>
                         </div>
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-primary" role="progressbar" style="width: {{ $score->average_score }}%"></div>
+                        <div class="mb-3">
+                            <label class="small text-muted d-block text-uppercase fw-bold mb-1" style="font-size: 10px;">Jurusan</label>
+                            <span class="fw-medium text-dark">{{ $user->siswa->kelas->jurusan ?? '-' }}</span>
                         </div>
                     </div>
-                    @empty
-                    <p class="text-muted text-center py-3">Belum ada data penilaian</p>
-                    @endforelse
                 </div>
             </div>
-            <div class="col-md-6 mb-4">
-                <div class="bg-light p-4 rounded-3">
-                    <h6 class="fw-bold mb-3">Ringkasan</h6>
-                    <table class="table table-sm">
-                        <tr>
-                            <td>Total Penilaian</td>
-                            <td class="fw-bold">{{ $history->count() }}x</td>
-                        </tr>
-                        <tr>
-                            <td>Nilai Tertinggi</td>
-                            <td class="fw-bold text-success">{{ number_format($scores->max('average_score') ?? 0, 1) }}</td>
-                        </tr>
-                        <tr>
-                            <td>Nilai Terendah</td>
-                            <td class="fw-bold text-danger">{{ number_format($scores->min('average_score') ?? 0, 1) }}</td>
-                        </tr>
-                        <tr>
-                            <td>Rata-rata Total</td>
-                            <td class="fw-bold text-primary">{{ number_format($scores->avg('average_score') ?? 0, 1) }}</td>
-                        </tr>
-                    </table>
-                </div>
-            </div>
-        </div>
 
-        <div class="bg-light p-4 rounded-3">
-            <h6 class="fw-bold mb-3">Riwayat Penilaian</h6>
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Tanggal</th>
-                            <th>Periode</th>
-                            <th>Penilai</th>
-                            <th>Catatan</th>
-                            <th class="text-center">Total Nilai</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($history as $item)
-                        <tr>
-                            <td>{{ $item->created_at->format('d/m/Y') }}</td>
-                            <td>{{ $item->period }}</td>
-                            <td>{{ $item->evaluator->name ?? '-' }}</td>
-                            <td>{{ $item->general_notes ?? '-' }}</td>
-                            <td class="text-center fw-bold">{{ number_format($item->details->avg('score') ?? 0, 1) }}</td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="5" class="text-center text-muted">Belum ada riwayat penilaian</td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+            <div class="col-md-8">
+                <div class="card border-0 shadow-sm p-4" style="border-radius: 20px;">
+                    <h6 class="fw-bold text-dark mb-4">Analisis Karakter Siswa</h6>
+                    
+                    @if($scores->isEmpty())
+                        <div class="text-center py-5">
+                            <i class="bi bi-graph-up-arrow fs-1 text-light-emphasis mb-3 d-block"></i>
+                            <p class="text-muted">Belum ada data penilaian untuk siswa ini di tahun ajaran ini.</p>
+                        </div>
+                    @else
+                        <div style="height: 350px;">
+                            <canvas id="radarChart"></canvas>
+                        </div>
+                    @endif
+                </div>
             </div>
         </div>
     </div>
+
+    @if(!$scores->isEmpty())
+    @push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const ctx = document.getElementById('radarChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: {!! json_encode($scores->pluck('name')) !!},
+                datasets: [{
+                    label: 'Skor Rata-rata',
+                    data: {!! json_encode($scores->pluck('average_score')) !!},
+                    fill: true,
+                    backgroundColor: 'rgba(30, 94, 255, 0.2)',
+                    borderColor: '#1E5EFF',
+                    pointBackgroundColor: '#1E5EFF',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#1E5EFF'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: { display: true },
+                        suggestedMin: 0,
+                        suggestedMax: 10,
+                        ticks: { stepSize: 2 }
+                    }
+                }
+            }
+        });
+    </script>
+    @endpush
+    @endif
 </x-app-layout>

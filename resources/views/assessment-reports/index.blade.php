@@ -1,133 +1,118 @@
 <x-app-layout>
     @section('title', 'Laporan Penilaian Siswa')
 
-    <div class="card card-table p-4 border-0 shadow-sm" style="border-radius: 20px;">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h5 class="fw-bold mb-0 text-dark">Laporan Penilaian Siswa</h5>
-                <div class="mt-2">
-                    <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill shadow-sm" style="font-size: 0.8rem;">
-                        <i class="bi bi-calendar-check-fill me-1"></i> 
-                        Periode: {{ $tahunAktif->tahun ?? 'Semua Periode' }} {{ isset($tahunAktif->semester) ? '('.$tahunAktif->semester.')' : '' }}
-                    </span>
+    <div class="container-fluid py-4">
+        <div class="card border border-light-subtle shadow-none p-4" style="border-radius: 20px; background-color: white;">
+            
+            <div class="mb-4">
+                <h4 class="fw-bold mb-0 text-dark" style="letter-spacing: -0.5px;">Laporan Penilaian Siswa</h4>
+                <p class="text-muted small mb-0">Pantau hasil evaluasi karakter siswa berdasarkan data penilaian terbaru.</p>
+            </div>
+
+            <div class="row g-3 mb-4 p-4 bg-light rounded-4 border-0">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-secondary text-uppercase" style="font-size: 10px; letter-spacing: 1px;">Tahun Ajaran</label>
+                    <select class="form-select border-0 shadow-sm" id="tahunAjaranFilter" style="border-radius: 10px; height: 45px;">
+                        <option value="">Semua Tahun</option>
+                        @foreach($years as $year)
+                            <option value="{{ $year->id }}" {{ request('tahun_ajaran_id') == $year->id ? 'selected' : '' }}>
+                                {{ $year->tahun }} ({{ $year->semester }})
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-secondary text-uppercase" style="font-size: 10px; letter-spacing: 1px;">Jurusan</label>
+                    <select class="form-select border-0 shadow-sm" id="jurusanFilter" style="border-radius: 10px; height: 45px;">
+                        <option value="">Semua Jurusan</option>
+                        @foreach($majors as $major)
+                            <option value="{{ $major }}" {{ request('jurusan') == $major ? 'selected' : '' }}>{{ $major }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold text-secondary text-uppercase" style="font-size: 10px; letter-spacing: 1px;">Cari Nama Siswa</label>
+                    <input type="text" class="form-control border-0 shadow-sm" id="searchFilter" placeholder="Masukkan nama..." value="{{ request('search') }}" style="border-radius: 10px; height: 45px;">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-primary w-100 shadow-none d-flex align-items-center justify-content-center gap-2" 
+                            onclick="applyFilter()" 
+                            style="border-radius: 10px; background-color: #1E5EFF; border: none; height: 45px; font-weight: 600;">
+                        <i class="bi bi-search"></i> Filter
+                    </button>
                 </div>
             </div>
-            <div class="d-flex gap-2">
-                <a href="{{ route('laporan-penilaian.export') }}?format=excel" class="btn btn-success px-4 shadow-sm" style="border-radius: 12px;">
-                    <i class="bi bi-file-excel me-2"></i> Export Excel
-                </a>
-                <a href="{{ route('laporan-penilaian.export') }}?format=pdf" class="btn btn-danger px-4 shadow-sm" style="border-radius: 12px;">
-                    <i class="bi bi-file-pdf me-2"></i> Export PDF
-                </a>
-            </div>
-        </div>
 
-        <!-- Filter Section -->
-        <div class="row g-3 mb-4">
-            <div class="col-md-3">
-                <label class="small fw-bold">Tahun Ajaran</label>
-                <select class="form-select rounded-3" id="tahunAjaranFilter">
-                    <option value="">Semua Tahun</option>
-                    @foreach($years as $year)
-                        <option value="{{ $year->id }}" {{ request('tahun_ajaran_id') == $year->id ? 'selected' : '' }}>
-                            {{ $year->tahun }} ({{ $year->semester }})
-                        </option>
-                    @endforeach
-                </select>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle border-top">
+                    <thead class="bg-white">
+                        <tr class="text-secondary small text-uppercase" style="font-size: 11px; letter-spacing: 0.5px;">
+                            <th class="border-0 py-3 px-3">Nama Siswa</th>
+                            <th class="border-0 py-3">NIS</th>
+                            <th class="border-0 py-3">Kelas</th>
+                            <th class="border-0 py-3 text-center">Sesi Nilai</th>
+                            <th class="border-0 py-3 text-center">Rata-rata</th>
+                            <th class="border-0 py-3 text-end px-3">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($data as $siswa)
+                        @php
+                            $assessments = $siswa->assessmentsReceived ?? collect();
+                            $avgScore = $assessments->flatMap(function($a) {
+                                return $a->details;
+                            })->avg('score') ?? 0;
+                        @endphp
+                        <tr>
+                            <td class="py-3 px-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary-subtle text-primary fw-bold d-flex align-items-center justify-content-center rounded-3 me-3" 
+                                         style="width: 42px; height: 42px; border: 1px solid rgba(30, 94, 255, 0.1);">
+                                        {{ substr($siswa->name, 0, 1) }}
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold text-dark mb-0" style="font-size: 14px;">{{ $siswa->name }}</div>
+                                        <div class="text-muted" style="font-size: 12px;">{{ $siswa->email ?? 'Siswa' }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="text-muted font-monospace small">{{ $siswa->siswa->NIS ?? '-' }}</span></td>
+                            <td>
+                                <span class="badge bg-white text-dark border fw-medium px-2 py-1" style="border-radius: 6px;">
+                                    {{ $siswa->siswa->kelas->nama_kelas ?? '-' }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="fw-bold">{{ $assessments->count() }}</span>
+                            </td>
+                            <td class="text-center">
+                                <div class="d-inline-block px-3 py-1 rounded-pill fw-bold" 
+                                     style="font-size: 13px; {{ $avgScore >= 7.5 ? 'background-color: #e6f4ea; color: #1e7e34;' : ($avgScore >= 6.0 ? 'background-color: #fff4e5; color: #b45d00;' : 'background-color: #fce8e8; color: #c62828;') }}">
+                                    {{ number_format($avgScore, 1) }}
+                                </div>
+                            </td>
+                            <td class="text-end px-3">
+                                <a href="{{ route('monitoring-nilai.show', $siswa->id) }}" 
+                                   class="btn btn-light btn-sm border-0 rounded-3 px-3 py-2 text-primary" 
+                                   style="font-weight: 600;">
+                                    Detail <i class="bi bi-chevron-right ms-1"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <p class="text-muted">Tidak ada data siswa ditemukan.</p>
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
-            <div class="col-md-2">
-                <label class="small fw-bold">Tingkat</label>
-                <select class="form-select rounded-3" id="tingkatFilter">
-                    <option value="">Semua</option>
-                    <option value="10" {{ request('tingkat') == 10 ? 'selected' : '' }}>10</option>
-                    <option value="11" {{ request('tingkat') == 11 ? 'selected' : '' }}>11</option>
-                    <option value="12" {{ request('tingkat') == 12 ? 'selected' : '' }}>12</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="small fw-bold">Jurusan</label>
-                <select class="form-select rounded-3" id="jurusanFilter">
-                    <option value="">Semua Jurusan</option>
-                    @foreach($majors as $major)
-                        <option value="{{ $major }}" {{ request('jurusan') == $major ? 'selected' : '' }}>{{ $major }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-md-2">
-                <label class="small fw-bold">Kelas</label>
-                <select class="form-select rounded-3" id="kelasFilter">
-                    <option value="">Semua Kelas</option>
-                    @foreach($classes ?? [] as $class)
-                        <option value="{{ $class->id }}">{{ $class->nama_kelas }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-md-2 d-flex align-items-end">
-                <button class="btn btn-primary w-100 rounded-3" onclick="applyFilter()">
-                    <i class="bi bi-filter me-2"></i> Terapkan
-                </button>
-            </div>
-        </div>
 
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead class="text-muted small text-uppercase">
-                    <tr>
-                        <th>Nama Siswa</th>
-                        <th>NIS</th>
-                        <th>Kelas</th>
-                        <th class="text-center">Total Penilaian</th>
-                        <th class="text-center">Rata-rata</th>
-                        <th class="text-center">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($data as $siswa)
-                    @php
-                        $assessments = $siswa->assessmentsReceived ?? collect();
-                        $totalScore = $assessments->flatMap(function($a) {
-                            return $a->details;
-                        })->avg('score') ?? 0;
-                    @endphp
-                    <tr>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <img src="https://ui-avatars.com/api/?name={{ urlencode($siswa->name) }}&background=0047ff&color=fff" class="rounded-circle me-2" width="32">
-                                <span class="fw-bold">{{ $siswa->name }}</span>
-                            </div>
-                        </td>
-                        <td><span class="text-muted">{{ $siswa->siswa->nis ?? '-' }}</span></td>
-                        <td>
-                            <span class="badge bg-light text-dark border">
-                                {{ $siswa->anggotaKelas->kelas->nama_kelas ?? '-' }}
-                            </span>
-                        </td>
-                        <td class="text-center">
-                            <span class="badge bg-secondary-subtle text-secondary rounded-pill px-3">
-                                {{ $assessments->count() }}
-                            </span>
-                        </td>
-                        <td class="text-center">
-                            <span class="fw-bold {{ $totalScore >= 75 ? 'text-success' : ($totalScore >= 60 ? 'text-warning' : 'text-danger') }}">
-                                {{ number_format($totalScore, 1) }}
-                            </span>
-                        </td>
-                        <td class="text-center">
-                            <a href="{{ route('laporan-penilaian.show', $siswa->id) }}" class="btn btn-sm btn-outline-primary rounded-3">
-                                <i class="bi bi-eye me-1"></i> Detail
-                            </a>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="6" class="text-center py-5 text-muted">
-                            <i class="bi bi-inbox fs-1 d-block mb-3"></i>
-                            Belum ada data penilaian.
-                        </td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
+            <div class="mt-4">
+                {{ $data->links() }}
+            </div>
         </div>
     </div>
 
@@ -135,45 +120,21 @@
     <script>
         function applyFilter() {
             const tahunAjaran = document.getElementById('tahunAjaranFilter').value;
-            const tingkat = document.getElementById('tingkatFilter').value;
             const jurusan = document.getElementById('jurusanFilter').value;
-            const kelas = document.getElementById('kelasFilter').value;
+            const search = document.getElementById('searchFilter').value;
             
             let url = new URL(window.location.href);
             
             if (tahunAjaran) url.searchParams.set('tahun_ajaran_id', tahunAjaran);
             else url.searchParams.delete('tahun_ajaran_id');
             
-            if (tingkat) url.searchParams.set('tingkat', tingkat);
-            else url.searchParams.delete('tingkat');
-            
             if (jurusan) url.searchParams.set('jurusan', jurusan);
             else url.searchParams.delete('jurusan');
-            
-            if (kelas) url.searchParams.set('kelas_id', kelas);
-            else url.searchParams.delete('kelas_id');
+
+            if (search) url.searchParams.set('search', search);
+            else url.searchParams.delete('search');
             
             window.location.href = url.toString();
-        }
-
-        // Update kelas dropdown ketika tingkat/jurusan berubah
-        document.getElementById('tingkatFilter').addEventListener('change', updateKelas);
-        document.getElementById('jurusanFilter').addEventListener('change', updateKelas);
-
-        function updateKelas() {
-            const tingkat = document.getElementById('tingkatFilter').value;
-            const jurusan = document.getElementById('jurusanFilter').value;
-            
-            fetch(`/laporan-penilaian/filter?tingkat=${tingkat}&jurusan=${jurusan}&ajax=1`)
-                .then(response => response.json())
-                .then(data => {
-                    const kelasSelect = document.getElementById('kelasFilter');
-                    kelasSelect.innerHTML = '<option value="">Semua Kelas</option>';
-                    
-                    data.classes.forEach(kelas => {
-                        kelasSelect.innerHTML += `<option value="${kelas.id}">${kelas.nama_kelas}</option>`;
-                    });
-                });
         }
     </script>
     @endpush

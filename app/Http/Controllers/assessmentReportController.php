@@ -32,8 +32,6 @@ class AssessmentReportController extends Controller
         $userId = $request->query('student_id') ?: Auth::id(); 
         $tahunAjaranId = $this->getActiveYearId($request); 
 
-        // 1. Query Radar Chart - Mengelompokkan rata-rata score per kategori
-        // Join: details -> questions -> categories
         $scores = AssessmentDetail::join('assessment_questions', 'assessment_questions.id', '=', 'assessment_details.question_id')
             ->join('assessment_categories', 'assessment_categories.id', '=', 'assessment_questions.category_id')
             ->join('assessments', 'assessments.id', '=', 'assessment_details.assessment_id')
@@ -48,7 +46,6 @@ class AssessmentReportController extends Controller
             ->groupBy('assessment_categories.name')
             ->get();
 
-        // 2. Query Riwayat Lengkap untuk Timeline
         $history = Assessment::where('evaluatee_id', $userId)
             ->with(['evaluator:id,name', 'details.question'])
             ->when($tahunAjaranId, function($q) use ($tahunAjaranId) {
@@ -97,10 +94,16 @@ class AssessmentReportController extends Controller
         $tahunId = $this->getActiveYearId($request);
         $tingkat = $request->get('tingkat');
         $jurusan = $request->get('jurusan');
+        $search = $request->get('search'); // Tambahkan variabel search
 
         $query = User::where('role', 'siswa');
 
-        // Filter berdasarkan Kelas (melalui relasi anggotaKelas jika ada)
+        // Filter Pencarian Nama
+        if ($search) {
+            $query->where('name', 'like', '%' . $search . '%');
+        }
+
+        // Filter berdasarkan Kelas
         if ($tingkat || $jurusan) {
             $query->whereHas('siswa', function($q) use ($tingkat, $jurusan) {
                 $q->whereHas('kelas', function($k) use ($tingkat, $jurusan) {
@@ -110,13 +113,14 @@ class AssessmentReportController extends Controller
             });
         }
 
+        // PERBAIKAN: Gunakan paginate() alih-alih get()
         $data = $query->with([
             'siswa.kelas',
             'assessmentsReceived' => function($q) use ($tahunId) {
                 if ($tahunId) $q->where('tahun_ajaran_id', $tahunId);
                 $q->with('details');
             }
-        ])->get();
+        ])->paginate(10)->withQueryString(); // Menjaga filter tetap ada saat pindah halaman
 
         $years = TahunAjaran::orderBy('id', 'desc')->get();
         $majors = Kelas::distinct()->pluck('jurusan');
