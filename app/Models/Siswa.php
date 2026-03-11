@@ -19,9 +19,10 @@ class Siswa extends Model
     ];
 
     public function kelas()
-    {
-        return $this->belongsTo(Kelas::class, 'id_kelas');
-    }
+{
+    // Beritahu Laravel kalau foreign key-nya adalah id_kelas
+    return $this->belongsTo(Kelas::class, 'id_kelas');
+}
 
     public function user()
     {

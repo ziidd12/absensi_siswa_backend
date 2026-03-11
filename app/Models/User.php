@@ -60,4 +60,28 @@ class User extends Authenticatable
         // User memiliki satu profil Guru
         return $this->hasOne(Guru::class, 'user_id');
     }
+
+    /**
+     * Relasi ke penilaian yang diterima (sebagai siswa)
+     * Melalui tabel siswa
+     */
+    public function assessmentsReceived()
+    {
+        return $this->hasManyThrough(
+            Assessment::class,      // Model tujuan
+            Siswa::class,           // Model perantara
+            'user_id',              // Foreign key di tabel siswa (user_id)
+            'siswa_id',             // Foreign key di tabel assessments (siswa_id)
+            'id',                   // Local key di tabel users
+            'id'                    // Local key di tabel siswa
+        );
+    }
+
+    /**
+     * Relasi ke penilaian yang dibuat (sebagai evaluator/guru)
+     */
+    public function assessmentsGiven()
+    {
+        return $this->hasMany(Assessment::class, 'evaluator_id');
+    }
 }
