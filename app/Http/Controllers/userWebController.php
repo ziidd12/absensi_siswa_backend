@@ -16,7 +16,7 @@ class UserWebController extends Controller
     public function index()
     {
         $data = User::orderBy('created_at', 'desc')->get();
-        return view('user.index', compact('data'));
+        return view('admin.users.index', compact('data'));
     }
 
     /**
@@ -38,7 +38,7 @@ class UserWebController extends Controller
             'role'     => $validated['role'],
         ]);
 
-        return redirect()->route('user.index')->with('success', 'User baru berhasil dibuat!');
+        return redirect()->route('admin.users.index')->with('success', 'User baru berhasil dibuat!');
     }
 
     public function edit(Request $request)
@@ -72,7 +72,7 @@ class UserWebController extends Controller
 
         $user->save();
 
-        return redirect()->route('user.index')->with('success', 'Data user berhasil diperbarui!');
+        return redirect()->route('admin.users.index')->with('success', 'Data user berhasil diperbarui!');
     }
 
     /**
@@ -88,7 +88,7 @@ class UserWebController extends Controller
         }
 
         $user->delete();
-        return redirect()->route('user.index')->with('success', 'User berhasil dihapus!');
+        return redirect()->route('admin.users.index')->with('success', 'User berhasil dihapus!');
     }
 
     /**
