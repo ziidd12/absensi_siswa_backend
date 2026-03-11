@@ -15,47 +15,54 @@ class KelasController extends Controller
     }
 
     public function index(Request $request)
-    {
-        // Ambil semua kelas (Master Data)
-        $data = Kelas::all(); 
-        
-        // Ambil tahun yang sedang aktif saja untuk ditampilkan di Header/Label
-        $tahunAktif = TahunAjaran::where('is_active', true)->first();
-        $tahunAjaran = TahunAjaran::all(); // Untuk dropdown di modal jika tetap butuh
+{
+    // Gunakan eager loading 'with' agar relasi terpanggil
+    $data = Kelas::with('tahunAjaran')->get(); 
+    
+    $tahunAktif = TahunAjaran::where('is_active', true)->first();
+    $tahunAjaran = TahunAjaran::all();
 
-        if ($request->expectsJson()) {
-            return response()->json([
-                'status' => 'success',
-                'tahun_aktif' => $tahunAktif,
-                'data' => $data
-            ]);
-        }
-
-        return view('kelas.index', compact('data', 'tahunAktif', 'tahunAjaran'));
-    }
-
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'tingkat'         => 'required|integer',
-            'jurusan'         => 'required|string|max:20',
-            'nomor_kelas'     => 'required|string|max:5',
-            'tahun_ajaran_id' => 'required|exists:tahun_ajaran,id',
+    if ($request->expectsJson()) {
+        return response()->json([
+            'status' => 'success',
+            'tahun_aktif' => $tahunAktif,
+            'data' => $data
         ]);
-
-        $status = Kelas::create($validated);
-
-        if ($request->expectsJson()) {
-            return response()->json([
-                'status' => true,
-                'message' => 'Data kelas berhasil ditambahkan',
-                'data' => $status
-            ], 201);
-        }
-
-        return redirect('/kelas')->with('success', 'Data kelas berhasil ditambahkan');
     }
 
+    return view('kelas.index', compact('data', 'tahunAktif', 'tahunAjaran'));
+}
+
+public function store(Request $request)
+{
+    // 1. Cari tahun ajaran yang AKTIF
+    $tahunAktif = TahunAjaran::where('is_active', true)->first();
+
+    // 2. Jika tidak ada tahun aktif, jangan lanjut! 
+    if (!$tahunAktif) {
+        return redirect()->back()->with('error', 'Gagal: Tidak ada Tahun Ajaran yang sedang AKTIF di database.');
+    }
+
+    // 3. Gabungkan ID tahun aktif ke request
+    $request->merge(['tahun_ajaran_id' => $tahunAktif->id]);
+
+    // 4. Validasi
+    $validated = $request->validate([
+        'tingkat'         => 'required|integer',
+        'jurusan'         => 'required|string|max:20',
+        'nomor_kelas'     => 'required|string|max:5',
+        'tahun_ajaran_id' => 'required|exists:tahun_ajaran,id',
+    ]);
+
+    try {
+        // 5. Simpan ke database
+        Kelas::create($validated);
+        return redirect('/kelas')->with('success', 'Data kelas berhasil ditambahkan ke periode ' . $tahunAktif->tahun);
+    } catch (\Exception $e) {
+        // Jika ada error database, munculkan pesannya
+        return redirect()->back()->with('error', 'Error Database: ' . $e->getMessage());
+    }
+}
     public function update(Request $request, $id)
     {
         $kelas = $this->findKelasById($id);

@@ -36,7 +36,8 @@ class GuruController extends Controller
 
         $status = Guru::create($validated);
 
-        if ($request->expectsJson()) {
+        // Perbaikan: Jika bukan request dari aplikasi mobile/AJAX, maka redirect
+        if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'status' => true,
                 'message' => 'Data guru berhasil ditambahkan',
@@ -59,7 +60,7 @@ class GuruController extends Controller
 
         $guru->update($validated);
 
-        if ($request->expectsJson()) {
+        if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'status' => true,
                 'message' => 'Data guru berhasil diupdate',
@@ -74,7 +75,7 @@ class GuruController extends Controller
         $guru = $this->findGuruById($id);
         $guru->delete();
 
-        if ($request->expectsJson()) {
+        if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'status' => true,
                 'message' => 'Data guru berhasil dihapus',

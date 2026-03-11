@@ -14,15 +14,15 @@ class Siswa extends Model
     protected $fillable = [
         'user_id',
         'nama_siswa',
-        'NIS',
-        'id_kelas', // Pastikan namanya id_kelas sesuai database
+        'nis',        // Menggunakan huruf kecil sesuai validasi controller
+        'id_kelas',   // Foreign key ke tabel kelas
     ];
 
     public function kelas()
-    {
-        // Beritahu Laravel foreign key-nya adalah 'id_kelas'
-        return $this->belongsTo(Kelas::class, 'id_kelas');
-    }
+{
+    // Beritahu Laravel kalau foreign key-nya adalah id_kelas
+    return $this->belongsTo(Kelas::class, 'id_kelas');
+}
 
     public function user()
     {

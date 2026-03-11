@@ -26,42 +26,54 @@
                         </thead>
                         <tbody>
                             @forelse($kehadiranTerbaru as $absensi)
-                            <tr>
-                                <td class="fw-bold text-primary">#{{ $absensi->siswa->nis ?? $absensi->siswa_id }}</td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <img src="https://ui-avatars.com/api/?name={{ urlencode($absensi->siswa->nama ?? 'No Name') }}&background=random" class="rounded-circle me-3" width="35">
-                                        <span class="fw-medium">{{ $absensi->siswa->nama ?? 'Siswa Tidak Ditemukan' }}</span>
-                                    </div>
-                                </td>
+                                {{-- Pastikan data siswa tersedia --}}
+                                @if($absensi->siswa)
+                                <tr>
+                                    <td class="fw-bold text-primary">
+                                        #{{ $absensi->siswa->nis ?? $absensi->siswa->id }}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {{-- Avatar otomatis dari nama siswa --}}
+                                            <img src="https://ui-avatars.com/api/?name={{ urlencode($absensi->siswa->nama ?? 'S') }}&background=random&color=fff" 
+     class="rounded-circle me-3" 
+     width="35">
+                                            <span class="fw-medium">{{ $absensi->siswa->nama }}</span>
+                                        </div>
+                                    </td>
 
-                                <td>
-                                    {{ $absensi->siswa->kelas->tingkat ?? '' }} 
-                                    {{ $absensi->siswa->kelas->jurusan ?? '' }} 
-                                    {{ $absensi->siswa->kelas->nomor_kelas ?? '-' }}
-                                </td>
-                                <td class="text-muted">
-                                    {{ $absensi->created_at->format('H:i A') }}
-                                </td>
-                                <td>
-                                    @php
-                                        $statusColor = [
-                                            'Hadir' => 'success',
-                                            'Izin'  => 'warning',
-                                            'Sakit' => 'info',
-                                            'Alpa'  => 'danger'
-                                        ][$absensi->status] ?? 'secondary';
-                                    @endphp
-                                    <span class="badge rounded-pill bg-{{ $statusColor }}-subtle text-{{ $statusColor }} px-3">
-                                        {{ $absensi->status }}
-                                    </span>
-                                </td>
-                                <td class="text-center">
-                                    <a href="{{ route('absensi.show', $absensi->id) }}" class="btn btn-light btn-sm rounded-3">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-                                </td>
-                            </tr>
+                                    <td>
+                                        @if($absensi->siswa->kelas)
+                                            {{ $absensi->siswa->kelas->tingkat }} 
+                                            {{ $absensi->siswa->kelas->jurusan }} 
+                                            {{ $absensi->siswa->kelas->nomor_kelas }}
+                                        @else
+                                            <span class="text-muted small">Kelas belum diatur</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-muted">
+                                        {{ $absensi->created_at->format('H:i A') }}
+                                    </td>
+                                    <td>
+                                        @php
+                                            $statusColor = [
+                                                'Hadir' => 'success',
+                                                'Izin'  => 'warning',
+                                                'Sakit' => 'info',
+                                                'Alpa'  => 'danger'
+                                            ][$absensi->status] ?? 'secondary';
+                                        @endphp
+                                        <span class="badge rounded-pill bg-{{ $statusColor }}-subtle text-{{ $statusColor }} px-3">
+                                            {{ $absensi->status }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="{{ route('absensi.show', $absensi->id) }}" class="btn btn-light btn-sm rounded-3">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                @endif
                             @empty
                             <tr>
                                 <td colspan="6" class="text-center py-5 text-muted">

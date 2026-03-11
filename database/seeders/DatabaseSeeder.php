@@ -62,7 +62,7 @@ class DatabaseSeeder extends Seeder
 
         // 6. Siswa (User & Profil Siswa)
         $uSiswa = User::create([
-            'name' => 'Ahmad Siswa',
+            'name' => 'Ahmad Zidan',
             'email' => 'siswa@test.com',
             'password' => Hash::make('password'),
             'role' => 'siswa',
@@ -71,9 +71,37 @@ class DatabaseSeeder extends Seeder
         $siswaProfile = Siswa::create([
             'user_id' => $uSiswa->id,
             'id_kelas' => $kelas->id,
-            'nama_siswa' => 'Ahmad Siswa',
+            'nama_siswa' => 'Ahmad Zidan',
             'NIS' => '222310101'
         ]);
+        // // 6. Siswa (User & Profil Siswa)
+        // $u2Siswa = User::create([
+        //     'name' => 'Annisa Aulia F',
+        //     'email' => 'siswa2@test.com',
+        //     'password' => Hash::make('password'),
+        //     'role' => 'siswa',
+        // ]);
+
+        // $siswaProfile2 = Siswa::create([
+        //     'user_id' => $uSiswa->id,
+        //     'id_kelas' => $kelas->id,
+        //     'nama_siswa' => 'Annisa Aulia F',
+        //     'NIS' => '222310102'
+        // ]);
+        // // 6. Siswa (User & Profil Siswa)
+        // $u3Siswa = User::create([
+        //     'name' => 'Turky Khalid W',
+        //     'email' => 'siswa3@test.com',
+        //     'password' => Hash::make('password'),
+        //     'role' => 'siswa',
+        // ]);
+
+        // $siswaProfile3 = Siswa::create([
+        //     'user_id' => $uSiswa->id,
+        //     'id_kelas' => $kelas->id,
+        //     'nama_siswa' => 'Turky Khalid W',
+        //     'NIS' => '222310103'
+        // ]);
 
         // 7. Jadwal (Senin - Minggu)
         $haris = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];

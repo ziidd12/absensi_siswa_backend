@@ -8,6 +8,9 @@ use App\Http\Controllers\KelasController;
 use App\Http\Controllers\SiswaController;
 use App\Http\Controllers\TahunAjaranController;
 use App\Http\Controllers\UserWebController;
+use App\Http\Controllers\AssessmentCategoryController;
+use App\Http\Controllers\AssessmentQuestionController;
+use App\Http\Controllers\AssessmentReportController; // Tambahkan ini
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -23,13 +26,11 @@ Route::get('/', function () {
 // Semua route di bawah ini memerlukan login dan verifikasi
 Route::middleware(['auth', 'verified'])->group(function () {
     
-    // Dashboard Utama - Menggunakan ::class (titik dua ganda)
+    // Dashboard Utama
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    
     // Manajemen User (Web)
     Route::get('/users-management', [UserWebController::class, 'index'])->name('admin.users.index');
-    // Jika menggunakan resource, bisa disederhanakan, tapi ini versi manual sesuai kodemu:
     Route::post('/users-management', [UserWebController::class, 'store'])->name('admin.users.store');
     Route::put('/users-management/{id}', [UserWebController::class, 'update'])->name('admin.users.update');
     Route::delete('/users-management/{id}', [UserWebController::class, 'destroy'])->name('admin.users.destroy');
@@ -41,12 +42,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('siswa', SiswaController::class);
     Route::resource('kelas', KelasController::class);
     Route::resource('tahun-ajaran', TahunAjaranController::class);
+    
+    // Routes untuk Assessment Category (Penilaian Siswa)
+    Route::prefix('setup-penilaian')->name('setup-penilaian.')->group(function () {
+        Route::resource('kategori', AssessmentCategoryController::class);
+        Route::resource('pertanyaan', AssessmentQuestionController::class);
+    });
+
+    // --- MONITORING & LAPORAN (Web View) ---
+    Route::prefix('monitoring-nilai')->name('monitoring-nilai.')->group(function () {
+        Route::get('/', [AssessmentReportController::class, 'index'])->name('index');
+        Route::get('/detail-siswa/{id}', [AssessmentReportController::class, 'show'])->name('show');
+        Route::get('/statistik-kelas/{kelasId}', [AssessmentReportController::class, 'classStatistics'])->name('kelas');
+        Route::get('/rekap-kategori/{categoryId}', [AssessmentReportController::class, 'categoryReport'])->name('kategori');
+        Route::get('/export-excel', [AssessmentReportController::class, 'export'])->name('export');
+    });
 
     // Profile Settings
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
-
-// Memuat rute autentikasi bawaan (login, register, logout, dll)
 require __DIR__.'/auth.php';
