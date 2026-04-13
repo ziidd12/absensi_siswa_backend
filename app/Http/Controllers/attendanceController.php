@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\{Absensi, Sesi, TahunAjaran, SesiPresensi}; 
+use App\Models\{Absensi, Sesi, TahunAjaran, SesiPresensi, Siswa};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth; 
 use Illuminate\Support\Facades\DB;
@@ -29,32 +29,21 @@ class AttendanceController extends Controller {
                 return response()->json(['status' => 'error', 'message' => 'Hanya siswa yang dapat melakukan absensi!'], 403);
             }
 
-            // Memastikan relasi jadwal dan kelas ikut terbawa
             $sesi = Sesi::where('token_qr', $request->token_qr)->with('jadwal.kelas')->first();
             
             if (!$sesi) {
                 return response()->json(['status' => 'error', 'message' => 'Token QR tidak valid atau sudah kedaluwarsa'], 404);
             }
 
-            // --- PERBAIKAN DI SINI (BAGIAN 3) ---
-            // Kita cek langsung: Apakah kelas_id di tabel siswa SAMA dengan kelas_id di jadwal pelajaran?
-            // --- PERBAIKAN AKURAT DI BAGIAN 3 ---
-// Gunakan (int) untuk memastikan keduanya dibandingkan sebagai angka
-// --- PERBAIKAN: Gunakan id_kelas sesuai database kamu ---
-// --- PERBAIKAN SAKTI: Biar tidak terbaca 0 lagi ---
-$siswaKelasId  = (int) $user->siswa->id_kelas;
+            $siswaKelasId  = (int) $user->siswa->id_kelas;
+            $jadwalKelasId = (int) ($sesi->jadwal->id_kelas ?? ($sesi->jadwal->kelas->id ?? 0));
 
-// Kita ambil ID kelas dari jadwal. Jika id_kelas null, kita ambil dari relasi kelasnya langsung
-$jadwalKelasId = (int) ($sesi->jadwal->id_kelas ?? ($sesi->jadwal->kelas->id ?? 0));
-
-if ($siswaKelasId !== $jadwalKelasId) {
-    $namaKelasSeharusnya = $sesi->jadwal->kelas->nama_kelas ?? 'kelas yang sesuai';
-    return response()->json([
-        'status' => 'error', 
-        'message' => "Absensi Gagal: Anda terdaftar di kelas lain! (ID Kelas Kamu: $siswaKelasId, ID Kelas Jadwal: $jadwalKelasId)"
-    ], 403);
-}
-            // --- AKHIR PERBAIKAN ---
+            if ($siswaKelasId !== $jadwalKelasId) {
+                return response()->json([
+                    'status' => 'error', 
+                    'message' => "Absensi Gagal: Anda terdaftar di kelas lain! (ID Kelas Kamu: $siswaKelasId, ID Kelas Jadwal: $jadwalKelasId)"
+                ], 403);
+            }
 
             $tahunAktif = TahunAjaran::where('is_active', true)->first();
             if (!$tahunAktif) {
@@ -80,9 +69,42 @@ if ($siswaKelasId !== $jadwalKelasId) {
                 'long_siswa' => $request->long_siswa,
             ]);
 
+            // ============================================================
+            // --- LOGIKA POIN BISA MINUS (UPDATE TERBARU) ---
+            // ============================================================
+            $siswa = $user->siswa;
+            $poinPerubahan = 0;
+            $pesanPoin = "";
+
+            $jamMulai = $sesi->jadwal->jam_mulai ?? '07:10:00'; 
+            $waktuSiswa = now();
+            
+            $start = \Carbon\Carbon::parse($jamMulai);
+            $diffInMinutes = $start->diffInMinutes($waktuSiswa, false);
+
+            if ($diffInMinutes <= 1) {
+                $poinPerubahan = 10;
+                $pesanPoin = "Tepat waktu! +10 Poin.";
+            } elseif ($diffInMinutes > 1 && $diffInMinutes <= 10) {
+                $poinPerubahan = 5;
+                $pesanPoin = "Terlambat tipis. +5 Poin.";
+            } elseif ($diffInMinutes > 10 && $diffInMinutes <= 15) {
+                $poinPerubahan = -5;
+                $pesanPoin = "Telat >10 menit. Poin -5!";
+            } else {
+                $poinPerubahan = -10;
+                $pesanPoin = "Telat parah! Poin -10!";
+            }
+
+            // Langsung tambah/kurang tanpa filter 0
+            $siswa->points_store += $poinPerubahan;
+            $siswa->save(); 
+            // ============================================================
+
             return response()->json([
                 'status' => 'success', 
-                'message' => 'Absen Berhasil! Selamat belajar di kelas ' . ($sesi->jadwal->kelas->nama_kelas ?? '')
+                'message' => 'Absen Berhasil! ' . $pesanPoin . ' Selamat belajar di kelas ' . ($sesi->jadwal->kelas->nama_kelas ?? ''),
+                'poin_terbaru' => $siswa->points_store
             ], 200);
 
         } catch (\Exception $e) {
@@ -95,7 +117,6 @@ if ($siswaKelasId !== $jadwalKelasId) {
 
     public function historySiswa() {
         $user = Auth::user();
-        
         $history = Absensi::with(['sesi.jadwal.mapel', 'tahunAjaran'])
             ->where('siswa_id', $user->siswa->id)
             ->orderBy('waktu_scan', 'desc')

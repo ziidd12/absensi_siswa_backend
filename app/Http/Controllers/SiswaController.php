@@ -138,13 +138,9 @@ class SiswaController extends Controller
         }
     }
 
-    // ============================================================
-    // FUNGSI BARU: KHUSUS UNTUK FLUTTER (PAKAI ID)
-    // ============================================================
     public function getSiswaByKelasId(Request $request, $id)
     {
         try {
-            // Kita cari siswa berdasarkan id_kelas yang dikirim Flutter
             $siswa = Siswa::where('id_kelas', $id)
                 ->orderBy('nama_siswa', 'asc')
                 ->get();
@@ -158,6 +154,39 @@ class SiswaController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ============================================================
+    // FUNGSI BARU: AMBIL POIN SPESIFIK SISWA (UNTUK HALAMAN STORE)
+    // ============================================================
+    // ============================================================
+    // FUNGSI BARU: AMBIL POIN SPESIFIK SISWA (UNTUK HALAMAN STORE)
+    // ============================================================
+    public function getPointsStore($id) // Ganti dari getPoints ke getPointsStore
+    {
+        try {
+            // Kita pakai find() aja biar kalau error nggak langsung ngerusak server
+            $siswa = Siswa::select('id', 'nama_siswa', 'points_store')->find($id);
+
+            if (!$siswa) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Siswa tidak ditemukan'
+                ], 404);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'points' => (int) $siswa->points_store, // Pakai (int) biar yakin tipenya angka
+                'nama'   => $siswa->nama_siswa
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Server Error: ' . $e->getMessage()
             ], 500);
         }
     }
