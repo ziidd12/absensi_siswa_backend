@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+// Memanggil model-model yang diperlukan untuk mengelola data Absensi, Sesi, dan Tahun Ajaran
 use App\Models\{Absensi, Sesi, TahunAjaran, SesiPresensi}; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth; 
@@ -10,57 +11,68 @@ use Illuminate\Support\Facades\DB;
 
 class AttendanceController extends Controller {
 
+    /**
+     * FUNGSI: Membuat sesi absensi baru (Biasanya dipicu oleh Guru di kelas)
+     */
     public function createSesi(Request $request) {
+        // Alur: Membuat token unik untuk keamanan QR Code agar tidak mudah ditebak
         $token = bin2hex(random_bytes(16));
+        
+        // Alur: Menyimpan data sesi ke database dengan menghubungkan jadwal_id dan tanggal hari ini
         $sesi = Sesi::create([
             'jadwal_id' => $request->jadwal_id,
             'tanggal' => now()->toDateString(),
             'token_qr' => $token
         ]);
+        
+        // Output: Mengirimkan hasil token ke aplikasi untuk ditampilkan dalam bentuk gambar QR
         return response()->json(['status' => 'success', 'token_qr' => $token]);
     }
 
+    /**
+     * FUNGSI: Menangani proses Scan QR oleh Siswa
+     */
     public function scanQR(Request $request) {
         try {
             /** @var \App\Models\User $user */
+            // Ambil data user yang sedang login saat ini melalui token API
             $user = Auth::user();
 
+            // Validasi 1: Memastikan yang scan benar-benar user dengan role 'siswa'
             if (!$user || $user->role !== 'siswa' || !$user->siswa) {
                 return response()->json(['status' => 'error', 'message' => 'Hanya siswa yang dapat melakukan absensi!'], 403);
             }
 
-            // Memastikan relasi jadwal dan kelas ikut terbawa
+            // Validasi 2: Mencari sesi yang sesuai dengan token_qr yang dikirim dari HP siswa
+            // Alur: Melakukan join (with) ke tabel jadwal dan kelas untuk verifikasi lokasi kelas
             $sesi = Sesi::where('token_qr', $request->token_qr)->with('jadwal.kelas')->first();
             
             if (!$sesi) {
                 return response()->json(['status' => 'error', 'message' => 'Token QR tidak valid atau sudah kedaluwarsa'], 404);
             }
 
-            // --- PERBAIKAN DI SINI (BAGIAN 3) ---
-            // Kita cek langsung: Apakah kelas_id di tabel siswa SAMA dengan kelas_id di jadwal pelajaran?
-            // --- PERBAIKAN AKURAT DI BAGIAN 3 ---
-// Gunakan (int) untuk memastikan keduanya dibandingkan sebagai angka
-// --- PERBAIKAN: Gunakan id_kelas sesuai database kamu ---
-// --- PERBAIKAN SAKTI: Biar tidak terbaca 0 lagi ---
-$siswaKelasId  = (int) $user->siswa->id_kelas;
+            // Validasi 3: Memastikan siswa berada di kelas yang benar sesuai jadwal pelajaran
+            // Alur: Mengambil ID kelas siswa dan ID kelas dari jadwal, lalu dibandingkan
+            $siswaKelasId  = (int) $user->siswa->id_kelas;
 
-// Kita ambil ID kelas dari jadwal. Jika id_kelas null, kita ambil dari relasi kelasnya langsung
-$jadwalKelasId = (int) ($sesi->jadwal->id_kelas ?? ($sesi->jadwal->kelas->id ?? 0));
+            // Logika cadangan: Ambil ID kelas dari jadwal, jika kosong ambil dari relasi kelasnya
+            $jadwalKelasId = (int) ($sesi->jadwal->id_kelas ?? ($sesi->jadwal->kelas->id ?? 0));
 
-if ($siswaKelasId !== $jadwalKelasId) {
-    $namaKelasSeharusnya = $sesi->jadwal->kelas->nama_kelas ?? 'kelas yang sesuai';
-    return response()->json([
-        'status' => 'error', 
-        'message' => "Absensi Gagal: Anda terdaftar di kelas lain! (ID Kelas Kamu: $siswaKelasId, ID Kelas Jadwal: $jadwalKelasId)"
-    ], 403);
-}
-            // --- AKHIR PERBAIKAN ---
+            if ($siswaKelasId !== $jadwalKelasId) {
+                $namaKelasSeharusnya = $sesi->jadwal->kelas->nama_kelas ?? 'kelas yang sesuai';
+                return response()->json([
+                    'status' => 'error', 
+                    'message' => "Absensi Gagal: Anda terdaftar di kelas lain! (ID Kelas Kamu: $siswaKelasId, ID Kelas Jadwal: $jadwalKelasId)"
+                ], 403);
+            }
 
+            // Validasi 4: Memastikan sistem mencatat pada Tahun Ajaran yang sedang aktif (is_active = true)
             $tahunAktif = TahunAjaran::where('is_active', true)->first();
             if (!$tahunAktif) {
                 return response()->json(['status' => 'error', 'message' => 'Sistem gagal menemukan Tahun Ajaran aktif.'], 400);
             }
 
+            // Validasi 5: Mencegah kecurangan (Satu siswa tidak boleh absen 2 kali di sesi yang sama)
             $sudahAbsen = Absensi::where('siswa_id', $user->siswa->id)
                 ->where('sesi_id', $sesi->id)
                 ->exists();
@@ -69,15 +81,16 @@ if ($siswaKelasId !== $jadwalKelasId) {
                 return response()->json(['status' => 'error', 'message' => 'Anda sudah melakukan absensi pada sesi ini'], 400);
             }
 
+            // Alur: Jika semua validasi lolos, buat record baru di tabel Absensi
             Absensi::create([
                 'sesi_id' => $sesi->id,
                 'siswa_id' => $user->siswa->id,
                 'tahun_ajaran_id' => $tahunAktif->id,
-                'waktu_scan' => now(),
+                'waktu_scan' => now(), // Mencatat jam absensi secara real-time
                 'status' => 'hadir',
                 'is_valid' => true,
-                'lat_siswa' => $request->lat_siswa,
-                'long_siswa' => $request->long_siswa,
+                'lat_siswa' => $request->lat_siswa, // Menyimpan koordinat GPS Latitude
+                'long_siswa' => $request->long_siswa, // Menyimpan koordinat GPS Longitude
             ]);
 
             return response()->json([
@@ -86,6 +99,7 @@ if ($siswaKelasId !== $jadwalKelasId) {
             ], 200);
 
         } catch (\Exception $e) {
+            // Alur: Menangkap jika ada error pada sistem/database agar tidak berakibat crash pada aplikasi
             return response()->json([
                 'status' => 'error',
                 'message' => 'Terjadi kesalahan di server: ' . $e->getMessage()
@@ -93,14 +107,21 @@ if ($siswaKelasId !== $jadwalKelasId) {
         }
     }
 
+    /**
+     * FUNGSI: Menampilkan Riwayat Absensi khusus untuk profil Siswa
+     */
     public function historySiswa() {
         $user = Auth::user();
         
+        // Alur: Mengambil semua data absensi milik siswa tersebut, diurutkan dari yang terbaru
+        // Eager Loading (with): Mengambil data Sesi, Jadwal, Mapel, dan Tahun Ajaran sekaligus
         $history = Absensi::with(['sesi.jadwal.mapel', 'tahunAjaran'])
             ->where('siswa_id', $user->siswa->id)
             ->orderBy('waktu_scan', 'desc')
             ->get();
 
+        // Alur: Menghitung total kehadiran berdasarkan status masing-masing (Hadir, Izin, Sakit, Alpa)
+        // Isi: Ini menggunakan Array Asosiatif untuk membungkus ringkasan data
         $summary = [
             'total_hadir' => $history->where('status', 'hadir')->count(),
             'total_izin'  => $history->where('status', 'izin')->count(),
@@ -108,6 +129,7 @@ if ($siswaKelasId !== $jadwalKelasId) {
             'total_alpa'  => $history->where('status', 'alpa')->count(),
         ];
 
+        // Output: Mengirimkan ringkasan (summary) dan daftar riwayat lengkap (data) ke Flutter
         return response()->json([
             'status' => 'success',
             'summary' => $summary,
@@ -115,8 +137,12 @@ if ($siswaKelasId !== $jadwalKelasId) {
         ]);
     }
 
+    /**
+     * FUNGSI: Input Absensi Manual (Biasanya digunakan oleh Guru/Admin untuk banyak siswa)
+     */
     public function storeManual(Request $request) {
         try {
+            // Validasi: Memastikan data input jadwal ada dan data absensi berupa daftar (array)
             $validated = $request->validate([
                 'jadwal_id' => 'required',
                 'absensi'   => 'required|array',
@@ -124,7 +150,9 @@ if ($siswaKelasId !== $jadwalKelasId) {
 
             $tahunAktif = TahunAjaran::where('is_active', true)->first();
 
+            // Alur Looping: Memproses setiap data siswa yang dikirim di dalam daftar array
             foreach ($validated['absensi'] as $item) {
+                // Alur: Menggunakan updateOrCreate (Jika data sudah ada di tgl tersebut, akan diupdate; jika belum, akan dibuatkan baru)
                 Absensi::updateOrCreate(
                     [
                         'siswa_id'  => $item['siswa_id'],
@@ -133,7 +161,7 @@ if ($siswaKelasId !== $jadwalKelasId) {
                     ],
                     [
                         'tahun_ajaran_id' => $tahunAktif ? $tahunAktif->id : null,
-                        'status'          => $item['status'], 
+                        'status'          => $item['status'], // Mengambil status dari inputan manual (Hadir/Izin/Sakit/Alpa)
                         'waktu_scan'      => now(),
                     ]
                 );

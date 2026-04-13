@@ -16,7 +16,7 @@ class UserWebController extends Controller
     public function index()
     {
         $data = User::orderBy('created_at', 'desc')->get();
-        return view('admin.users.index', compact('data'));
+        return view('user.index', compact('data'));
     }
 
     /**
