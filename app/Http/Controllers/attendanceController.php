@@ -3,8 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-// Memanggil model-model yang diperlukan untuk mengelola data Absensi, Sesi, dan Tahun Ajaran
-use App\Models\{Absensi, Sesi, TahunAjaran, SesiPresensi}; 
+use App\Models\{Absensi, Sesi, TahunAjaran, SesiPresensi, Siswa};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth; 
 use Illuminate\Support\Facades\DB;
@@ -43,23 +42,16 @@ class AttendanceController extends Controller {
                 return response()->json(['status' => 'error', 'message' => 'Hanya siswa yang dapat melakukan absensi!'], 403);
             }
 
-            // Validasi 2: Mencari sesi yang sesuai dengan token_qr yang dikirim dari HP siswa
-            // Alur: Melakukan join (with) ke tabel jadwal dan kelas untuk verifikasi lokasi kelas
             $sesi = Sesi::where('token_qr', $request->token_qr)->with('jadwal.kelas')->first();
             
             if (!$sesi) {
                 return response()->json(['status' => 'error', 'message' => 'Token QR tidak valid atau sudah kedaluwarsa'], 404);
             }
 
-            // Validasi 3: Memastikan siswa berada di kelas yang benar sesuai jadwal pelajaran
-            // Alur: Mengambil ID kelas siswa dan ID kelas dari jadwal, lalu dibandingkan
             $siswaKelasId  = (int) $user->siswa->id_kelas;
-
-            // Logika cadangan: Ambil ID kelas dari jadwal, jika kosong ambil dari relasi kelasnya
             $jadwalKelasId = (int) ($sesi->jadwal->id_kelas ?? ($sesi->jadwal->kelas->id ?? 0));
 
             if ($siswaKelasId !== $jadwalKelasId) {
-                $namaKelasSeharusnya = $sesi->jadwal->kelas->nama_kelas ?? 'kelas yang sesuai';
                 return response()->json([
                     'status' => 'error', 
                     'message' => "Absensi Gagal: Anda terdaftar di kelas lain! (ID Kelas Kamu: $siswaKelasId, ID Kelas Jadwal: $jadwalKelasId)"
@@ -93,9 +85,42 @@ class AttendanceController extends Controller {
                 'long_siswa' => $request->long_siswa, // Menyimpan koordinat GPS Longitude
             ]);
 
+            // ============================================================
+            // --- LOGIKA POIN BISA MINUS (UPDATE TERBARU) ---
+            // ============================================================
+            $siswa = $user->siswa;
+            $poinPerubahan = 0;
+            $pesanPoin = "";
+
+            $jamMulai = $sesi->jadwal->jam_mulai ?? '07:10:00'; 
+            $waktuSiswa = now();
+            
+            $start = \Carbon\Carbon::parse($jamMulai);
+            $diffInMinutes = $start->diffInMinutes($waktuSiswa, false);
+
+            if ($diffInMinutes <= 1) {
+                $poinPerubahan = 10;
+                $pesanPoin = "Tepat waktu! +10 Poin.";
+            } elseif ($diffInMinutes > 1 && $diffInMinutes <= 10) {
+                $poinPerubahan = 5;
+                $pesanPoin = "Terlambat tipis. +5 Poin.";
+            } elseif ($diffInMinutes > 10 && $diffInMinutes <= 15) {
+                $poinPerubahan = -5;
+                $pesanPoin = "Telat >10 menit. Poin -5!";
+            } else {
+                $poinPerubahan = -10;
+                $pesanPoin = "Telat parah! Poin -10!";
+            }
+
+            // Langsung tambah/kurang tanpa filter 0
+            $siswa->points_store += $poinPerubahan;
+            $siswa->save(); 
+            // ============================================================
+
             return response()->json([
                 'status' => 'success', 
-                'message' => 'Absen Berhasil! Selamat belajar di kelas ' . ($sesi->jadwal->kelas->nama_kelas ?? '')
+                'message' => 'Absen Berhasil! ' . $pesanPoin . ' Selamat belajar di kelas ' . ($sesi->jadwal->kelas->nama_kelas ?? ''),
+                'poin_terbaru' => $siswa->points_store
             ], 200);
 
         } catch (\Exception $e) {
@@ -112,9 +137,6 @@ class AttendanceController extends Controller {
      */
     public function historySiswa() {
         $user = Auth::user();
-        
-        // Alur: Mengambil semua data absensi milik siswa tersebut, diurutkan dari yang terbaru
-        // Eager Loading (with): Mengambil data Sesi, Jadwal, Mapel, dan Tahun Ajaran sekaligus
         $history = Absensi::with(['sesi.jadwal.mapel', 'tahunAjaran'])
             ->where('siswa_id', $user->siswa->id)
             ->orderBy('waktu_scan', 'desc')

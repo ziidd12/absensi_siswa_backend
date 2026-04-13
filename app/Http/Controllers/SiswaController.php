@@ -31,24 +31,25 @@ class SiswaController extends Controller
 
     public function store(Request $request)
     {
+        // 1. Validasi
         $validated = $request->validate([
-            'user_id'    => 'required|exists:users,id',
-            'id_kelas'   => 'required|exists:kelas,id',
-            'nama_siswa' => 'required|string|max:255',
-            'nis'        => 'required|string|unique:siswa,nis',
+            'user_id'    => 'required',
+            'id_kelas'   => 'required',
+            'nama_siswa' => 'required',
+            'NIS'        => 'required|unique:siswa,NIS',
         ]);
 
-        $status = Siswa::create($validated);
+        // 2. Tambahkan poin (SESUAIKAN DENGAN KOLOM DI DB)
+        $validated['points_store'] = 0; 
 
-        if ($request->expectsJson() || $request->ajax()) {
-            return response()->json([
-                'status' => true,
-                'message' => 'Data siswa berhasil ditambahkan',
-                'data' => $status
-            ], 201);
+        // 3. Gunakan try-catch untuk menangkap "Ledakan" error 500
+        try {
+            Siswa::create($validated);
+            return redirect('/siswa')->with('success', 'Data Berhasil!');
+        } catch (\Exception $e) {
+            // TAMPILKAN ERROR ASLINYA
+            dd($e->getMessage()); 
         }
-
-        return redirect('/siswa')->with('success', 'Data siswa berhasil ditambahkan');
     }
 
     public function update(Request $request, $id)
@@ -59,7 +60,7 @@ class SiswaController extends Controller
             'user_id'    => 'required|exists:users,id',
             'id_kelas'   => 'required|exists:kelas,id',
             'nama_siswa' => 'required|string|max:255',
-            'nis'        => 'required|string|unique:siswa,nis,' . $id,
+            'NIS'        => 'required|string|unique:siswa,NIS,' . $id,
         ]);
 
         $siswa->update($validated);
@@ -138,13 +139,9 @@ class SiswaController extends Controller
         }
     }
 
-    // ============================================================
-    // FUNGSI BARU: KHUSUS UNTUK FLUTTER (PAKAI ID)
-    // ============================================================
     public function getSiswaByKelasId(Request $request, $id)
     {
         try {
-            // Kita cari siswa berdasarkan id_kelas yang dikirim Flutter
             $siswa = Siswa::where('id_kelas', $id)
                 ->orderBy('nama_siswa', 'asc')
                 ->get();
@@ -158,6 +155,39 @@ class SiswaController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ============================================================
+    // FUNGSI BARU: AMBIL POIN SPESIFIK SISWA (UNTUK HALAMAN STORE)
+    // ============================================================
+    // ============================================================
+    // FUNGSI BARU: AMBIL POIN SPESIFIK SISWA (UNTUK HALAMAN STORE)
+    // ============================================================
+    public function getPointsStore($id) // Ganti dari getPoints ke getPointsStore
+    {
+        try {
+            // Kita pakai find() aja biar kalau error nggak langsung ngerusak server
+            $siswa = Siswa::select('id', 'nama_siswa', 'points_store')->find($id);
+
+            if (!$siswa) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Siswa tidak ditemukan'
+                ], 404);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'points' => (int) $siswa->points_store, // Pakai (int) biar yakin tipenya angka
+                'nama'   => $siswa->nama_siswa
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Server Error: ' . $e->getMessage()
             ], 500);
         }
     }

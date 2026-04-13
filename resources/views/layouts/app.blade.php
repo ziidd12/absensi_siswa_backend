@@ -197,9 +197,21 @@
             <a href="{{ route('kelas.index') }}" class="nav-item-custom {{ request()->routeIs('kelas.*') ? 'active' : '' }}">
                 <i class="bi bi-door-open-fill"></i> Data Kelas
             </a>
-            
+<!-- 
+            <a href="{{ route('anggota-kelas.index') }}" class="nav-item-custom {{ request()->routeIs('anggota-kelas.*') ? 'active' : '' }}">
+                <i class="bi bi-people-fill"></i> Data Anggota Kelas
+            </a>
+             -->
             <a href="{{ route('tahun-ajaran.index') }}" class="nav-item-custom {{ request()->routeIs('tahun-ajaran.*') ? 'active' : '' }}">
                 <i class="bi bi-calendar3"></i> Tahun Ajaran
+            </a>
+
+            <a href="{{ route('mapel.index') }}" class="nav-item-custom {{ request()->routeIs('mapel.*') ? 'active' : '' }}">
+                <i class="bi bi-book-fill"></i> Data Mapel
+            </a>
+
+            <a href="{{ route('jadwal.index') }}" class="nav-item-custom {{ request()->routeIs('jadwal.*') ? 'active' : '' }}">
+                <i class="bi bi-calendar-event"></i> Data Jadwal
             </a>
 
             <!-- Menu Penilaian -->

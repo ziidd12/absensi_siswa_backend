@@ -114,7 +114,7 @@ class DatabaseSeeder extends Seeder
                 'guru_id' => $guruProfile->id, // PERBAIKAN: Mengacu ke id tabel guru
                 'hari' => $hari,
                 'jam_mulai' => '07:30:00',
-                'jam_selesai' => '09:30:00',
+                'jam_selesai' => '23:00:00',
             ]);
             $jadwal_ids[$hari] = $j->id;
         }

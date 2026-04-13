@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class mapel extends Model
 {
-    protected $table = 'Mapel';
+    protected $table = 'mapel';
 
     protected $fillable = [
         'nama_mapel'

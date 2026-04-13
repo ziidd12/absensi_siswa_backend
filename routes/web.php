@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AbsensiController;
+use App\Http\Controllers\AnggotaKelasController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\GuruController;
@@ -11,6 +12,8 @@ use App\Http\Controllers\UserWebController;
 use App\Http\Controllers\AssessmentCategoryController;
 use App\Http\Controllers\AssessmentQuestionController;
 use App\Http\Controllers\AssessmentReportController; // Tambahkan ini
+use App\Http\Controllers\JadwalController;
+use App\Http\Controllers\MapelController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -62,5 +65,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::resource('mapel', MapelController::class);
+    Route::resource('anggota-kelas', AnggotaKelasController::class);
+    Route::resource('jadwal', JadwalController::class);
 });
 require __DIR__.'/auth.php';
