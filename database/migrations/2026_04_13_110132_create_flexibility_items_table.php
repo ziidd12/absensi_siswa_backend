@@ -11,13 +11,11 @@ return new class extends Migration
      */
     public function up()
 {
-    Schema::create('store_items', function (Blueprint $table) {
+    Schema::create('flexibility_items', function (Blueprint $table) {
         $table->id();
-        $table->string('nama_item');
-        $table->integer('harga_poin');
-        $table->string('icon')->default('fastfood'); // Nama icon Material Design
-        $table->string('warna')->default('orange'); // Warna tema item
-        $table->integer('stok')->default(0);
+        $table->string('item_name');
+        $table->integer('point_cost');
+        $table->integer('stock_limit')->default(0);
         $table->timestamps();
     });
 }

@@ -1,19 +1,28 @@
 <?php
 
-use App\Http\Controllers\AbsensiController;
-use App\Http\Controllers\AnggotaKelasController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\GuruController;
-use App\Http\Controllers\KelasController;
-use App\Http\Controllers\SiswaController;
-use App\Http\Controllers\TahunAjaranController;
-use App\Http\Controllers\UserWebController;
-use App\Http\Controllers\AssessmentCategoryController;
-use App\Http\Controllers\AssessmentQuestionController;
-use App\Http\Controllers\AssessmentReportController; // Tambahkan ini
-use App\Http\Controllers\JadwalController;
-use App\Http\Controllers\MapelController;
+use App\Http\Controllers\{
+    AbsensiController,
+    AttendanceController,
+    AnggotaKelasController,
+    DashboardController,
+    ProfileController,
+    GuruController,
+    KelasController,
+    SiswaController,
+    TahunAjaranController,
+    UserWebController,
+    AssessmentCategoryController,
+    AssessmentQuestionController,
+    AssessmentReportController,
+    JadwalController,
+    MapelController,
+    // Tambahkan Controller Gamifikasi Baru
+    PointRuleController,
+    PointLedgerController,
+    FlexibilityItemController,
+    FlexibilityController,
+    UserTokenController
+};
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -26,35 +35,76 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
-
-// Semua route di bawah ini memerlukan login dan verifikasi
 Route::middleware(['auth', 'verified'])->group(function () {
     
-    // Dashboard Utama
+    // --- DASHBOARD & LEADERBOARD ---
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
-    // Manajemen User (Web)
-    Route::get('/users-management', [UserWebController::class, 'index'])->name('admin.users.index');
-    Route::post('/users-management', [UserWebController::class, 'store'])->name('admin.users.store');
-    Route::put('/users-management/{id}', [UserWebController::class, 'update'])->name('admin.users.update');
-    Route::delete('/users-management/{id}', [UserWebController::class, 'destroy'])->name('admin.users.destroy');
-    Route::patch('/users-management/{id}/reset-device', [UserWebController::class, 'resetDevice'])->name('admin.users.reset_device');
-    // Ganti baris dashboard nu tadi, jadi kieu:
     Route::get('/leaderboard-ranking', [DashboardController::class, 'index'])->name('leaderboardAdmin.index');
-    // Resource Routes untuk Data Master
+
+    // --- MANAJEMEN USER & DEVICE ---
+    Route::prefix('users-management')->name('admin.users.')->group(function () {
+        Route::get('/', [UserWebController::class, 'index'])->name('index');
+        Route::post('/', [UserWebController::class, 'store'])->name('store');
+        Route::put('/{id}', [UserWebController::class, 'update'])->name('update');
+        Route::delete('/{id}', [UserWebController::class, 'destroy'])->name('destroy');
+        Route::patch('/{id}/reset-device', [UserWebController::class, 'resetDevice'])->name('reset_device');
+    });
+
+    // --- GAMIFIKASI: RULE ENGINE & LEDGER (Admin) ---
+    Route::prefix('gamifikasi')->name('gamifikasi.')->group(function () {
+        // Master Aturan Poin
+        Route::get('/rules', [PointRuleController::class, 'index'])->name('rules.index');
+        Route::post('/rules', [PointRuleController::class, 'store'])->name('rules.store');
+        Route::put('/rules/{id}', [PointRuleController::class, 'update'])->name('rules.update');
+        Route::delete('/rules/{id}', [PointRuleController::class, 'destroy'])->name('rules.destroy');
+
+        // Monitoring Mutasi Poin (Buku Besar)
+        Route::get('/ledgers', [PointLedgerController::class, 'index'])->name('ledgers.index');
+
+        // Monitoring Inventory Token Siswa
+        Route::get('/tokens', [UserTokenController::class, 'index'])->name('tokens.index');
+    });
+
+    // --- MARKETPLACE: ITEM & REDEEM (Admin & Siswa) ---
+    Route::prefix('marketplace')->name('marketplace.')->group(function () {
+        // Kelola Item Marketplace (Admin)
+        Route::get('/items', [FlexibilityItemController::class, 'index'])->name('items.index');
+        Route::post('/items', [FlexibilityItemController::class, 'store'])->name('items.store');
+        Route::put('/items/{id}', [FlexibilityItemController::class, 'update'])->name('items.update');
+        Route::delete('/items/{id}', [FlexibilityItemController::class, 'destroy'])->name('items.destroy');
+
+        // Tampilan Marketplace & Proses Tukar Poin (Siswa Web View)
+        Route::get('/browse', [FlexibilityController::class, 'index'])->name('index');
+        Route::post('/redeem', [FlexibilityController::class, 'redeemToken'])->name('redeem');
+    });
+
+    // --- ABSENSI & ATTENDANCE LOGIC (Guru/Admin) ---
+    Route::prefix('attendance')->name('attendance.')->group(function () {
+        // Buat Sesi QR (Guru)
+        Route::post('/create-session', [AttendanceController::class, 'createSesi'])->name('create-sesi');
+        // Input Absen Manual (Guru - Ini yang memicu Rule Engine Status)
+        Route::post('/manual-store', [AttendanceController::class, 'storeManual'])->name('store-manual');
+        
+        // Monitoring Laporan Attendance Baru
+        Route::get('/report', [AttendanceController::class, 'getAttendanceReport'])->name('report');
+    });
+
+    // --- DATA MASTER (Resource Routes) ---
     Route::resource('absensi', AbsensiController::class);
     Route::resource('guru', GuruController::class);
     Route::resource('siswa', SiswaController::class);
     Route::resource('kelas', KelasController::class);
     Route::resource('tahun-ajaran', TahunAjaranController::class);
+    Route::resource('mapel', MapelController::class);
+    Route::resource('jadwal', JadwalController::class);
+    Route::resource('anggota-kelas', AnggotaKelasController::class);
     
-    // Routes untuk Assessment Category (Penilaian Siswa)
+    // --- SISTEM PENILAIAN (Setup & Monitoring) ---
     Route::prefix('setup-penilaian')->name('setup-penilaian.')->group(function () {
         Route::resource('kategori', AssessmentCategoryController::class);
         Route::resource('pertanyaan', AssessmentQuestionController::class);
     });
 
-    // --- MONITORING & LAPORAN (Web View) ---
     Route::prefix('monitoring-nilai')->name('monitoring-nilai.')->group(function () {
         Route::get('/', [AssessmentReportController::class, 'index'])->name('index');
         Route::get('/detail-siswa/{id}', [AssessmentReportController::class, 'show'])->name('show');
@@ -63,13 +113,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/export-excel', [AssessmentReportController::class, 'export'])->name('export');
     });
 
-    // Profile Settings
+    // --- PROFILE SETTINGS ---
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
-    Route::resource('mapel', MapelController::class);
-    Route::resource('anggota-kelas', AnggotaKelasController::class);
-    Route::resource('jadwal', JadwalController::class);
 });
+
 require __DIR__.'/auth.php';

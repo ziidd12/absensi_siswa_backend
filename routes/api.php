@@ -8,8 +8,11 @@ use App\Http\Controllers\SiswaController;
 use App\Http\Controllers\AssessmentController;
 use App\Http\Controllers\AssessmentQuestionController;
 use App\Http\Controllers\AssessmentReportController;
+use App\Http\Controllers\FlexibilityController;
 use App\Http\Controllers\JadwalController;
+use App\Http\Controllers\PointLedgerController;
 use App\Http\Controllers\StoreAdminController;
+use App\Http\Controllers\UserTokenController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -61,6 +64,37 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/performance-radar', [AssessmentReportController::class, 'studentPerformance']);
         Route::get('/summary-student', [AssessmentReportController::class, 'student']);
         Route::get('/teacher-stats', [AssessmentReportController::class, 'teacherProgress']);
+    });
+
+    // =============================================================
+    // --- FITUR GAMIFIKASI (DOMPET INTEGRITAS) ---
+    // =============================================================
+    Route::prefix('gamifikasi')->group(function () {
+        
+        /**
+         * HERO SECTION & TAB 2: MARKETPLACE
+         * Return: Saldo Poin (points_store) & List Item Marketplace
+         */
+        Route::get('/marketplace', [FlexibilityController::class, 'index']);
+
+        /**
+         * TAB 1: RIWAYAT MUTASI
+         * Return: List riwayat masuk/keluar poin (Ledger)
+         */
+        Route::get('/history', [PointLedgerController::class, 'userHistory']);
+
+        /**
+         * TAB 3: MY INVENTORY
+         * Return: List token yang dimiliki (AVAILABLE / USED)
+         */
+        Route::get('/inventory', [UserTokenController::class, 'userInventory']);
+
+        /**
+         * ACTION: TUKAR POIN (REDEEM)
+         * Params: item_id
+         */
+        Route::post('/redeem', [FlexibilityController::class, 'redeemToken']);
+        
     });
 
     // --- JADWAL ---

@@ -30,7 +30,7 @@ class UserToken extends Model
     // Relasi ke item toko (asumsi nama modelnya StoreItem)
     public function item()
     {
-        return $this->belongsTo(StoreItem::class, 'item_id');
+        return $this->belongsTo(FlexibilityItem::class, 'item_id');
     }
 
     // Relasi ke absensi (jika token digunakan saat absen tertentu)

@@ -9,7 +9,7 @@ return new class extends Migration {
         Schema::create('user_tokens', function (Blueprint $table) {
             $table->id();
             $table->foreignId('siswa_id')->constrained('siswa')->onDelete('cascade');
-            $table->foreignId('item_id')->constrained('store_items')->onDelete('cascade'); // Relasi ke item toko
+            $table->foreignId('item_id')->constrained('flexibility_items')->onDelete('cascade'); // Relasi ke item toko
             $table->enum('status', ['AVAILABLE', 'USED', 'EXPIRED'])->default('AVAILABLE');
             
             // Relasi opsional: Token ini dipakai saat absensi yang mana?

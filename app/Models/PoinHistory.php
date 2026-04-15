@@ -26,6 +26,6 @@ class PoinHistory extends Model
 
     public function storeItem()
     {
-        return $this->belongsTo(StoreItem::class, 'store_item_id');
+        return $this->belongsTo(FlexibilityItem::class, 'store_item_id');
     }
 }

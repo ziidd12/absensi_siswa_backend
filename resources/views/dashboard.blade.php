@@ -30,7 +30,7 @@
                                 @if($absensi->siswa)
                                 <tr>
                                     <td class="fw-bold text-primary">
-                                        #{{ $absensi->siswa->nis ?? $absensi->siswa->id }}
+                                        #{{ $absensi->siswa->NIS ?? $absensi->siswa->id }}
                                     </td>
                                     <td>
                                         <div class="d-flex align-items-center">
@@ -38,7 +38,7 @@
                                             <img src="https://ui-avatars.com/api/?name={{ urlencode($absensi->siswa->nama ?? 'S') }}&background=random&color=fff" 
      class="rounded-circle me-3" 
      width="35">
-                                            <span class="fw-medium">{{ $absensi->siswa->nama }}</span>
+                                            <span class="fw-medium">{{ $absensi->siswa->nama_siswa }}</span>
                                         </div>
                                     </td>
 

@@ -214,8 +214,34 @@
                 <i class="bi bi-calendar-event"></i> Data Jadwal
             </a>
 
+            <!-- Menu Gamifikasi & Reward -->
+            <div class="px-3 mt-3 mb-2">
+                <small class="text-white-50 text-uppercase fw-bold">Gamifikasi & Reward</small>
+            </div>
+
+            <!-- Leaderboard / Ranking -->
             <a href="{{ route('leaderboardAdmin.index') }}" class="nav-item-custom {{ request()->routeIs('leaderboardAdmin.*') ? 'active' : '' }}">
-                <i class="bi bi-trophy"></i> <span>Ranking Poin</span>
+                <i class="bi bi-trophy-fill"></i> <span>Ranking Poin</span>
+            </a>
+
+            <!-- Rule Engine (Statement Builder) -->
+            <a href="{{ route('gamifikasi.rules.index') }}" class="nav-item-custom {{ request()->routeIs('gamifikasi.rules.*') ? 'active' : '' }}">
+                <i class="bi bi-gear-wide-connected"></i> <span>Aturan Poin</span>
+            </a>
+
+            <!-- Reward Marketplace (Shop Manager) -->
+            <a href="{{ route('marketplace.items.index') }}" class="nav-item-custom {{ request()->routeIs('marketplace.items.*') ? 'active' : '' }}">
+                <i class="bi bi-shop"></i> <span>Reward Shop</span>
+            </a>
+
+            <!-- Point Ledger (Buku Besar) -->
+            <a href="{{ route('gamifikasi.ledgers.index') }}" class="nav-item-custom {{ request()->routeIs('gamifikasi.ledgers.*') ? 'active' : '' }}">
+                <i class="bi bi-journal-text"></i> <span>Buku Besar Poin</span>
+            </a>
+
+            <!-- Inventory Token Siswa (Monitoring) -->
+            <a href="{{ route('gamifikasi.tokens.index') }}" class="nav-item-custom {{ request()->routeIs('gamifikasi.tokens.*') ? 'active' : '' }}">
+                <i class="bi bi-ticket-perforated-fill"></i> <span>Token Siswa</span>
             </a>
 
             <!-- Menu Penilaian -->
