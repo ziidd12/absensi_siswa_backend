@@ -4,9 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Siswa;
 use App\Models\Kelas;
+use App\Models\PoinHistory; // Wajib aya meh teu beureum
+use App\Models\Redeem;
+use App\Models\StoreItem; // Tambahkeun ieu bisi can aya!
 use Illuminate\Http\Request;
-// PENTING: Baris ini tetap ada agar tidak Error 500!
-use Illuminate\Support\Facades\DB; 
+use Illuminate\Support\Facades\Auth; // Meh auth-na aman
+use Illuminate\Support\Facades\DB;
+
 
 class SiswaController extends Controller
 {
@@ -31,7 +35,6 @@ class SiswaController extends Controller
 
     public function store(Request $request)
     {
-        // 1. Validasi
         $validated = $request->validate([
             'user_id'    => 'required',
             'id_kelas'   => 'required',
@@ -39,15 +42,12 @@ class SiswaController extends Controller
             'NIS'        => 'required|unique:siswa,NIS',
         ]);
 
-        // 2. Tambahkan poin (SESUAIKAN DENGAN KOLOM DI DB)
         $validated['points_store'] = 0; 
 
-        // 3. Gunakan try-catch untuk menangkap "Ledakan" error 500
         try {
             Siswa::create($validated);
             return redirect('/siswa')->with('success', 'Data Berhasil!');
         } catch (\Exception $e) {
-            // TAMPILKAN ERROR ASLINYA
             dd($e->getMessage()); 
         }
     }
@@ -159,36 +159,131 @@ class SiswaController extends Controller
         }
     }
 
+    public function getPointsStore() // Hapus parameter $id
+{
+    try {
+        $user = Auth::user(); 
+        $siswa = Siswa::where('user_id', $user->id)->first();
+
+        if (!$siswa) {
+            return response()->json(['status' => 'error', 'message' => 'Siswa tidak ditemukan'], 404);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'points' => (int) $siswa->points_store, 
+            'nama'   => $siswa->nama_siswa
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+    }
+}
+
     // ============================================================
-    // FUNGSI BARU: AMBIL POIN SPESIFIK SISWA (UNTUK HALAMAN STORE)
+    // FUNGSI RIWAYAT POIN (FIXED & NO ERROR)
     // ============================================================
-    // ============================================================
-    // FUNGSI BARU: AMBIL POIN SPESIFIK SISWA (UNTUK HALAMAN STORE)
-    // ============================================================
-    public function getPointsStore($id) // Ganti dari getPoints ke getPointsStore
+    public function getPoinHistory()
     {
         try {
-            // Kita pakai find() aja biar kalau error nggak langsung ngerusak server
-            $siswa = Siswa::select('id', 'nama_siswa', 'points_store')->find($id);
+            // Paké Auth facade meh VS Code teu beureum
+            $user = Auth::user(); 
+
+            if (!$user) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Urang kudu login heula, Lekk!'
+                ], 401);
+            }
+
+            $siswa = Siswa::where('user_id', $user->id)->first();
 
             if (!$siswa) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Siswa tidak ditemukan'
+                    'message' => 'Data siswa tidak ditemukan'
                 ], 404);
             }
 
+            $history = PoinHistory::where('siswa_id', $siswa->id)
+                ->orderBy('created_at', 'desc')
+                ->get();
+
             return response()->json([
                 'status' => 'success',
-                'points' => (int) $siswa->points_store, // Pakai (int) biar yakin tipenya angka
-                'nama'   => $siswa->nama_siswa
+                'data' => $history
             ], 200);
 
         } catch (\Exception $e) {
             return response()->json([
-                'status' => 'error',
+                'status' => 'error', 
                 'message' => 'Server Error: ' . $e->getMessage()
             ], 500);
         }
     }
+    /**
+     * FUNGSI REDEEM: Témpélkeun di handap méméh kurung kurawal tutup } file SiswaController
+     */
+   public function redeemItem(Request $request)
+{
+    try {
+        $user = Auth::user();
+        $siswa = \App\Models\Siswa::where('user_id', $user->id)->first();
+
+        if (!$siswa) {
+            return response()->json(['status' => 'error', 'message' => 'Data Siswa teu kapanggih!'], 404);
+        }
+
+        $item = \App\Models\StoreItem::find($request->item_id);
+        if (!$item) {
+            return response()->json(['status' => 'error', 'message' => 'Item Toko teu kapanggih!'], 404);
+        }
+
+        // Cek naha keur aya voucher nu pending keneh
+        $sudahPunya = \App\Models\Redeem::where('siswa_id', $siswa->id)
+            ->where('status', 'pending')
+            ->exists();
+
+        if ($sudahPunya) {
+            return response()->json(['status' => 'error', 'message' => 'Maneh geus boga item ieu! Pake heula meh bisa meuli deui.'], 400);
+        }
+
+        if ($siswa->points_store < $item->harga_poin) {
+            return response()->json(['status' => 'error', 'message' => 'Poin teu cukup, Lekk!'], 400);
+        }
+
+        // PROSES TRANSAKSI
+       return DB::transaction(function () use ($siswa, $item) {
+    // 1. Kurangi Poin
+    $siswa->points_store = $siswa->points_store - $item->harga_poin;
+    $siswa->save();
+
+    // 2. TULIS KE RIWAYAT POIN (Dikasih Status Aktif & ID Item)
+    \App\Models\PoinHistory::create([
+        'siswa_id' => $siswa->id,
+        'store_item_id' => $item->id, // <-- PENTING: Biar kedeteksi pas absen
+        'poin_perubahan' => -$item->harga_poin,
+        'keterangan' => 'Beli Item: ' . $item->nama_item,
+        'status' => 'aktif', // <-- PENTING: Status awal harus aktif
+    ]);
+
+    // 3. Data Redeem (Tetap ada buat cadangan)
+    \App\Models\Redeem::create([
+        'siswa_id'         => $siswa->id,
+        'store_item_id'    => $item->id,
+        'poin_dikeluarkan' => $item->harga_poin,
+        'status'           => 'pending' 
+    ]);
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Berhasil beli ' . $item->nama_item,
+        'sisa_poin' => (int) $siswa->points_store
+    ]);
+});
+
+    } catch (\Exception $e) {
+        // IEU PENTING: Mun gagal, urang hayang nyaho errorna naon!
+        return response()->json(['status' => 'error', 'message' => 'Gagal: ' . $e->getMessage()], 500);
+    }
+}
 }

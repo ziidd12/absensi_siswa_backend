@@ -16,7 +16,7 @@ class Siswa extends Model
         'nama_siswa',
         'NIS',           
         'id_kelas',
-        'points_store', // <--- TAMBAHKAN INI (Gak ngubah yang lain)
+        'points_store', // <--- Ieu nu ditambahan meh kodingan redeem jalan
     ];
 
     public function kelas()
@@ -43,5 +43,9 @@ class Siswa extends Model
     public function tokens()
     {
         return $this->hasMany(UserToken::class);
+    }
+    public function redeems()
+    {
+    return $this->hasMany(Redeem::class, 'siswa_id');
     }
 }

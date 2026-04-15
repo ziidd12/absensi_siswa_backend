@@ -14,25 +14,28 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes
+| API Routes - Versi Gacor Anti Bocor
 |--------------------------------------------------------------------------
 */
 
-// --- 1. ROUTE PUBLIC (TANPA LOGIN) ---
+// --- 1. ROUTE PUBLIC (Bisa diakses tanpa login) ---
 Route::post('/login', [AuthController::class, 'login']);
-    Route::apiResource('store-items', StoreAdminController::class);
-    Route::get('/siswa/store/points/{id}', [SiswaController::class, 'getPointsStore']);
+Route::apiResource('store-items', StoreAdminController::class);
 
-// --- 2. ROUTE PROTECTED (HARUS LOGIN / PAKAI TOKEN) ---
+
+// --- 2. ROUTE PROTECTED (Wajib bawa Token / Sanctum) ---
 Route::middleware('auth:sanctum')->group(function () {
     
     // --- AUTH & USER ---
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/user-profile', [AuthController::class, 'profile']); // Optional jika ada
+    Route::get('/user-profile', [AuthController::class, 'profile']);
 
     // --- FITUR STORE & POIN (Siswa) ---
-    // Dipindah ke sini supaya token Bearer dari Flutter bisa dibaca Laravel
-  
+    // Jalur ini sudah otomatis deteksi User lewat Token, jadi GAK PERLU {id} lagi
+    Route::get('/siswa/store/points', [SiswaController::class, 'getPointsStore']);
+    Route::get('/poin/history', [SiswaController::class, 'getPoinHistory']);
+    Route::post('/siswa/redeem', [SiswaController::class, 'redeemItem']);
+    Route::get('/siswa/inventory', [SiswaController::class, 'getInventory']);
 
     // --- SISWA & AKADEMIK ---
     Route::get('/siswa-by-kelas/{nama_kelas}', [SiswaController::class, 'getByKelas']);
@@ -60,5 +63,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/teacher-stats', [AssessmentReportController::class, 'teacherProgress']);
     });
 
+    // --- JADWAL ---
     Route::get('/jadwal-hari-ini', [JadwalController::class, 'index']);
 });

@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('sesi', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('jadwal_id')->constrained('jadwal');
+            $table->foreignId('jadwal_id')->constrained('jadwal')->onDelete('cascade');
+
             $table->date('tanggal');
             $table->string('token_qr');
             $table->timestamps();

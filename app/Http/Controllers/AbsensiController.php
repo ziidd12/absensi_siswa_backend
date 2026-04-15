@@ -4,9 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Absensi;
 use App\Models\Sesi;
-use App\Models\Siswa; // Tambahkan ini untuk akses model Siswa
+use App\Models\Siswa;
+use App\Models\PoinHistory; // <--- WAJIB AYA
 use Illuminate\Http\Request;
-use Carbon\Carbon; // Tambahkan ini untuk urusan waktu
+use Carbon\Carbon;
 
 class AbsensiController extends Controller
 {
@@ -28,44 +29,89 @@ class AbsensiController extends Controller
     {
         $validated = $request->validate([
             'siswa_id'        => 'required|exists:siswa,id',
-            'sesi_id'         => 'required|exists:Sesi,id',
+            'sesi_id'         => 'required|exists:sesi,id',
             'tahun_ajaran_id' => 'required|exists:tahun_ajaran,id',
             'waktu_scan'      => 'nullable',
             'status'          => 'required|in:Hadir,Izin,Sakit,Alpa',
         ]);
 
-        // Ambil data sesi/jadwal untuk tahu jam mulai yang seharusnya
-        $sesi = Sesi::find($validated['sesi_id']); // Asumsi Sesi punya jam_mulai
+        $sesi = Sesi::find($validated['sesi_id']);
+        $siswa = Siswa::find($validated['siswa_id']);
 
-        if ($validated['status'] === 'Hadir' && $sesi) {
-            $siswa = Siswa::find($validated['siswa_id']);
+        if ($siswa && $sesi) {
             
-            // Batas telat = Jam Mulai di Jadwal + 5 menit toleransi
-            $jamMulaiJadwal = Carbon::createFromFormat('H:i:s', $sesi->jam_mulai);
-            $batasToleransi = $jamMulaiJadwal->addMinutes(5); 
-            
-            $waktuAbsen = Carbon::now();
+            // --- LOGIKA 1: HADIR (TEPAT WAKTU VS TELAT) ---
+            if ($validated['status'] === 'Hadir') {
+                $jamMulaiJadwal = Carbon::createFromFormat('H:i:s', $sesi->jam_mulai);
+                $batasToleransi = $jamMulaiJadwal->copy()->addMinutes(5); 
+                $waktuAbsen = Carbon::now();
 
-            if ($waktuAbsen->lessThanOrEqualTo($batasToleransi)) {
-                $siswa->increment('points_store', 5);
-            } else {
-                // Gunakan update agar lebih stabil dan tidak double decrement yang aneh
-                $currentPoints = $siswa->points_store;
-                $potongan = 3; // Ubah sesuai keinginan, misal 3 atau 10
-                
+                if ($waktuAbsen->lessThanOrEqualTo($batasToleransi)) {
+                    // TEPAT WAKTU: +5 Poin
+                    $siswa->increment('points_store', 5);
+                    
+                    PoinHistory::create([
+                        'siswa_id' => $siswa->id,
+                        'poin_perubahan' => 5,
+                        'keterangan' => 'Hadir Tepat Waktu (' . $sesi->nama_sesi . ')'
+                    ]);
+                } else {
+                    // --- LOGIKA ITEM SAKTI (TAMBAHAN DI DIEU) ---
+                    // Cek naha boga item aktif?
+                    $itemSakti = PoinHistory::where('siswa_id', $siswa->id)
+    ->where('status', 'aktif')
+    ->whereNotNull('store_item_id')
+    ->oldest() // Ambil voucher yang paling lama biar nggak numpuk
+    ->first();
+
+                    if ($itemSakti) {
+                        // DISALAMETKEUN KU ITEM SAKTI
+                        // Poin teu dikurangan, cukup itemna dijantenkeun 'used'
+                        $itemSakti->update(['status' => 'used']);
+
+                        PoinHistory::create([
+                            'siswa_id' => $siswa->id,
+                            'poin_perubahan' => 0,
+                            'keterangan' => 'Telat dibantu ku Voucher Sakti! (' . $sesi->nama_sesi . ')'
+                        ]);
+                    } else {
+                        // TELAT BIASA: -3 Poin (Mun teu boga voucher)
+                        $potongan = 3;
+                        $siswa->update([
+                            'points_store' => max(0, $siswa->points_store - $potongan)
+                        ]);
+
+                        PoinHistory::create([
+                            'siswa_id' => $siswa->id,
+                            'poin_perubahan' => -$potongan,
+                            'keterangan' => 'Telat Absen (' . $sesi->nama_sesi . ')'
+                        ]);
+                    }
+                }
+            } 
+            
+            // --- LOGIKA 2: ALPA ---
+            else if ($validated['status'] === 'Alpa') {
+                $potonganAlpa = 10;
                 $siswa->update([
-                    'points_store' => max(0, $currentPoints - $potongan)
+                    'points_store' => max(0, $siswa->points_store - $potonganAlpa)
+                ]);
+
+                PoinHistory::create([
+                    'siswa_id' => $siswa->id,
+                    'poin_perubahan' => -$potonganAlpa,
+                    'keterangan' => 'Tidak Hadir/Alpa (' . $sesi->nama_sesi . ')'
                 ]);
             }
         }
-        // --- LOGIKA TAMBAH POIN STORE (SELESAI) ---
 
+        // Simpen data absensi
         $status = Absensi::create($validated);
 
         if ($request->expectsJson()) {
             return response()->json([
                 'status' => true,
-                'message' => 'Absensi berhasil dicatat',
+                'message' => 'Absensi & Riwayat Poin berhasil dicatat',
                 'data' => $status
             ], 201);
         }

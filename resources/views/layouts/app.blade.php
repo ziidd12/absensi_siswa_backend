@@ -214,6 +214,10 @@
                 <i class="bi bi-calendar-event"></i> Data Jadwal
             </a>
 
+            <a href="{{ route('leaderboardAdmin.index') }}" class="nav-item-custom {{ request()->routeIs('leaderboardAdmin.*') ? 'active' : '' }}">
+                <i class="bi bi-trophy"></i> <span>Ranking Poin</span>
+            </a>
+
             <!-- Menu Penilaian -->
             <div class="px-3 mt-3 mb-2">
                 <small class="text-white-50 text-uppercase fw-bold">Penilaian</small>
@@ -294,8 +298,12 @@
 
         <!-- Content Slot -->
         <div class="container-fluid p-0">
-            {{ $slot }}
-        </div>
+    @if(isset($slot))
+        {{ $slot }}
+    @else
+        @yield('content')
+    @endif
+</div>
     </div>
 
     <!-- Bootstrap JS -->

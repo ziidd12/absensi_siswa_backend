@@ -26,6 +26,7 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
+
 // Semua route di bawah ini memerlukan login dan verifikasi
 Route::middleware(['auth', 'verified'])->group(function () {
     
@@ -38,7 +39,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/users-management/{id}', [UserWebController::class, 'update'])->name('admin.users.update');
     Route::delete('/users-management/{id}', [UserWebController::class, 'destroy'])->name('admin.users.destroy');
     Route::patch('/users-management/{id}/reset-device', [UserWebController::class, 'resetDevice'])->name('admin.users.reset_device');
-    
+    // Ganti baris dashboard nu tadi, jadi kieu:
+    Route::get('/leaderboard-ranking', [DashboardController::class, 'index'])->name('leaderboardAdmin.index');
     // Resource Routes untuk Data Master
     Route::resource('absensi', AbsensiController::class);
     Route::resource('guru', GuruController::class);

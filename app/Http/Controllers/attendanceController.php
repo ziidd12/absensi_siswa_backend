@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\{Absensi, Sesi, TahunAjaran, SesiPresensi, Siswa};
+use App\Models\{Absensi, Sesi, TahunAjaran, SesiPresensi, Siswa, Redeem, PoinHistory}; // <--- Nambahkeun Redeem & PoinHistory di dieu
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth; 
 use Illuminate\Support\Facades\DB;
@@ -88,34 +88,71 @@ class AttendanceController extends Controller {
             // ============================================================
             // --- LOGIKA POIN BISA MINUS (UPDATE TERBARU) ---
             // ============================================================
-            $siswa = $user->siswa;
-            $poinPerubahan = 0;
-            $pesanPoin = "";
-
-            $jamMulai = $sesi->jadwal->jam_mulai ?? '07:10:00'; 
-            $waktuSiswa = now();
-            
-            $start = \Carbon\Carbon::parse($jamMulai);
-            $diffInMinutes = $start->diffInMinutes($waktuSiswa, false);
-
-            if ($diffInMinutes <= 1) {
-                $poinPerubahan = 10;
-                $pesanPoin = "Tepat waktu! +10 Poin.";
-            } elseif ($diffInMinutes > 1 && $diffInMinutes <= 10) {
-                $poinPerubahan = 5;
-                $pesanPoin = "Terlambat tipis. +5 Poin.";
-            } elseif ($diffInMinutes > 10 && $diffInMinutes <= 15) {
-                $poinPerubahan = -5;
-                $pesanPoin = "Telat >10 menit. Poin -5!";
-            } else {
-                $poinPerubahan = -10;
-                $pesanPoin = "Telat parah! Poin -10!";
-            }
-
-            // Langsung tambah/kurang tanpa filter 0
-            $siswa->points_store += $poinPerubahan;
-            $siswa->save(); 
             // ============================================================
+            // --- LOGIKA POIN + ITEM SAKTI (ANTI TELAT) ---
+            // ============================================================
+           // ============================================================
+            // --- LOGIKA POIN + FIX TIMEZONE & ITEM SAKTI ---
+            // ============================================================
+            // --- LOGIKA POIN + FIX TIMEZONE & ITEM SAKTI ---
+            // ... (Bagian validasi di luhur tetep sarua) ...
+
+// --- LOGIKA POIN + FIX TIMEZONE & ITEM SAKTI ---
+$siswa = $user->siswa;
+$poinPerubahan = 0;
+$pesanPoin = "";
+
+$waktuSekarang = \Carbon\Carbon::now('Asia/Jakarta');
+
+// 1. Nangtukeun Jam Mulai
+$jamMulaiStr = $sesi->jadwal->jam_mulai ?? '07:10:00'; 
+$start = \Carbon\Carbon::parse($jamMulaiStr, 'Asia/Jakarta');
+$diffInMinutes = $start->diffInMinutes($waktuSekarang, false);
+
+// 2. LOGIKA UTAMA (Téangan voucher ngan mun TELAT hungkul)
+if ($diffInMinutes <= 5) {
+    // TEPAT WAKTU (Aman nepi ka menit ka-5)
+    $poinPerubahan = 10;
+    $pesanPoin = "Tepat waktu! +10 Poin.";
+} 
+elseif ($diffInMinutes > 5 && $diffInMinutes <= 15) {
+    // TELAT (Menit 6 - 15) -> KAKARA DI DIEU URANG CEK VOUCHER
+    $itemSakti = \App\Models\Redeem::where('siswa_id', $siswa->id)
+                ->where('status', 'pending')
+                ->first();
+
+    if ($itemSakti) {
+        $poinPerubahan = 0; // Poin aman (teu dikurangan)
+        $pesanPoin = "Voucher SAKTI Aktif! Telat dibantu voucher, poin aman.";
+        
+        // PENTING: Robah status jadi 'used' meh teu bisa dipake deui isukan
+        $itemSakti->status = 'used';
+        $itemSakti->save();
+    } else {
+        $poinPerubahan = -10; 
+        $pesanPoin = "Telat! Poin -10 (Maneh teu boga voucher protection, Lekk!).";
+    }
+} 
+else {
+    // TELAT PARAH (> 15 Menit) -> Voucher ge moal sanggup nulungan
+    $poinPerubahan = -20;
+    $pesanPoin = "Telat parah leuwih ti 15 menit! Poin -20.";
+}
+
+// 3. Update & Simpen ka Database
+$siswa->points_store = $siswa->points_store + $poinPerubahan;
+$siswa->save(); 
+
+// 4. Catet History-na
+\App\Models\PoinHistory::create([
+    'siswa_id'       => $siswa->id,
+    'judul'          => 'Poin Absensi',
+    'poin_perubahan' => $poinPerubahan,
+    'tipe'           => ($poinPerubahan > 0) ? 'masuk' : (($poinPerubahan < 0) ? 'keluar' : 'tetap'),
+    'keterangan'     => $pesanPoin . ' (' . $waktuSekarang->format('H:i') . ')',
+]);
+
+// ... (Sésana balikkeun response json) ...
 
             return response()->json([
                 'status' => 'success', 
